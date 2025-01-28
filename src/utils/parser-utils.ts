@@ -24,24 +24,24 @@ export function validateLatexStructure(text: string): void {
         // Handle math mode
         if (char === '$') {
             if (text[i + 1] === '$') {
-                if (!inMathMode) {
-                    inMathMode = true;
-                    mathDelimiter = '$$';
-                    i++; // Skip next $
-                } else if (mathDelimiter === '$$') {
-                    inMathMode = false;
-                    mathDelimiter = '';
-                    i++; // Skip next $
-                }
-            } else {
-                if (!inMathMode) {
-                    inMathMode = true;
-                    mathDelimiter = '$';
-                } else if (mathDelimiter === '$') {
-                    inMathMode = false;
-                    mathDelimiter = '';
-                }
-            }
+                            if (!inMathMode) {
+                                inMathMode = true;
+                                mathDelimiter = '$$';
+                                i++; // Skip next $
+                            } else if (mathDelimiter === '$$') {
+                                inMathMode = false;
+                                mathDelimiter = '';
+                                i++; // Skip next $
+                            }
+                        }
+            else if (!inMathMode) {
+                                inMathMode = true;
+                                mathDelimiter = '$';
+                            }
+            else if (mathDelimiter === '$') {
+                                inMathMode = false;
+                                mathDelimiter = '';
+                            }
             continue;
         }
 

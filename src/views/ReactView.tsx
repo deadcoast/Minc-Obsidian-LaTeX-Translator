@@ -151,7 +151,9 @@ export function ReactView({ app }: { app: App }) {
 			new FolderSelectModal(app, resolve).open(); // Open folder selection modal
 		});
 
-		if (!folderPath) return; // Exit if no folder is selected
+		if (!folderPath) {
+    return;
+  } // Exit if no folder is selected
 
 		const targetFolder = app.vault.getAbstractFileByPath(folderPath);
 		if (!(targetFolder instanceof TFolder)) {
@@ -177,7 +179,9 @@ export function ReactView({ app }: { app: App }) {
 	const handleVaultConversion = useCallback(async () => {
 		const confirmMessage =
 			"Are you sure you want to convert all markdown files in the vault? This cannot be undone.";
-		if (!confirm(confirmMessage)) return;
+		if (!confirm(confirmMessage)) {
+    return;
+  }
 
 		const files = useApp().vault.getMarkdownFiles();
 		setProgress({ current: 0, total: files.length });

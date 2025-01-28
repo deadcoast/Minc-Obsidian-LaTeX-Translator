@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf, App } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import { ReactView } from './ReactView';
@@ -8,9 +8,11 @@ export const LATEX_VIEW_TYPE = 'latex-translator-view';
 
 export class LatexView extends ItemView {
 	root: Root | null = null;
+	app: App;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
+		this.app = (this.leaf as any).app;
 	}
 
 	getViewType(): string {
@@ -26,9 +28,9 @@ export class LatexView extends ItemView {
 		this.root.render(
 			<StrictMode>
 				<AppContext.Provider value={this.app}>
-				<ReactView />
+					<ReactView app={this.app} />
 				</AppContext.Provider>
-				</StrictMode>
+			</StrictMode>
 		);
 	}
 

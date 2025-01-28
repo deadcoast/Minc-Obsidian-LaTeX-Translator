@@ -136,8 +136,8 @@ export class MincLatexSettingTab extends PluginSettingTab {
                 .addOption('placeholder', 'Convert to (ref: label)')
                 .addOption('autoNumber', 'Auto-number equations')
                 .setValue(this.plugin.settings.handleRefs)
-                .onChange(async (value: 'ignore' | 'placeholder' | 'autoNumber') => {
-                    this.plugin.settings.handleRefs = value;
+                .onChange(async (value) => {
+                    this.plugin.settings.handleRefs = value as 'ignore' | 'placeholder' | 'autoNumber';
                     await this.plugin.saveSettings();
                 }));
     }

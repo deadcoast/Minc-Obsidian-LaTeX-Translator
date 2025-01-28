@@ -36,15 +36,6 @@ export interface ParserOptions {
 	unifyTextToMathrm?: boolean;
 }
 
-interface MathState {
-	currentMode?: 'inline' | 'display';
-	environmentStack: string[];
-}
-
-const mathState: MathState = {
-	environmentStack: []
-};
-
 /*******************************************************
  * NESTED ENVIRONMENTS PARSER HELPERS
  *******************************************************/
@@ -72,15 +63,13 @@ function replaceNestedEnvironments(text: string, envPattern: string): string {
 	while ((match = envRegex.exec(text)) !== null) {
 		const [full, type, name] = match;
 		if (type === 'begin') {
-			// Pushing environment name onto the stack
-			stack.push(name);
-		} else {
-			// type === 'end'
-			if (stack.length === 0 || stack.pop() !== name) {
-				// Mismatched \end, skip or handle error
-				continue;
-			}
-		}
+  			// Pushing environment name onto the stack
+  			stack.push(name);
+  		}
+  else if (stack.length === 0 || stack.pop() !== name) {
+  				// Mismatched \end, skip or handle error
+  				continue;
+  			}
 
 		// Once the stack is empty, we've closed a top-level environment
 		if (stack.length === 0) {
@@ -141,10 +130,14 @@ function removeMacros(text: string): string {
 		}
 
 		if (inMacro) {
-			if (text[i] === '{') braceDepth++;
+			if (text[i] === '{') {
+     braceDepth++;
+   }
 			if (text[i] === '}') {
 				braceDepth--;
-				if (braceDepth === 0) inMacro = false;
+				if (braceDepth === 0) {
+      inMacro = false;
+    }
 			}
 			continue;
 		}
@@ -333,7 +326,7 @@ export function parseLatexToObsidian(text: string, options: ParserOptions = {}):
 			const argPattern = Array.from({ length: args }, () => '\\{([^}]*)\\}').join('');
 			const macroRegex = new RegExp(`(?<!\\\\)\\\\${escapedName}(?:${argPattern})`, 'g');
 
-			text = text.replace(macroRegex, (fullMatch, ...captures) => {
+			text = text.replace(macroRegex, (_fullMatch, ...captures) => {
 				const callArgs = captures.slice(0, args);
 				let result = expansion;
 				callArgs.forEach((argVal, idx) => {
@@ -368,7 +361,7 @@ export function parseLatexToObsidian(text: string, options: ParserOptions = {}):
 		let eqCounter = 1;
 		const labelMap = new Map<string, number>();
 
-		text = text.replace(/\$\$([\s\S]*?)\$\$/g, (fullMatch: string, inner: string) => {
+		text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_fullMatch: string, inner: string) => {
 			const cleanedInner = inner.replace(/\\label\{([^}]+)}/g, (_m, labelName: string) => {
 				if (labelMap.has(labelName)) {
 					console.warn(`Duplicate label detected: ${labelName}`);
