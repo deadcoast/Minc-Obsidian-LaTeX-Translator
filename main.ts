@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Editor, MarkdownView, Notice } from 'obsidian';
+import { Plugin, WorkspaceLeaf, Editor, Notice } from 'obsidian';
 import { LatexView, LATEX_VIEW_TYPE } from './src/views/LatexView';
 import { MincLatexSettings, DEFAULT_SETTINGS, MincLatexSettingTab } from './src/settings';
 import { parseLatexToObsidian } from './src/latexParser';
@@ -58,7 +58,11 @@ class PromptModal extends Modal {
 }
 
 export default class MyPlugin extends Plugin {
-	settings: MincLatexSettings;
+	settings: MincLatexSettings = DEFAULT_SETTINGS;
+
+	private isTFolder(file: TAbstractFile | null): file is TFolder {
+		return file instanceof TFolder;
+	}
 
 	async onload() {
 		await this.loadSettings();
@@ -109,11 +113,6 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
-		// Utility function to check if a file is a folder
-		function isTFolder(file: TAbstractFile | null): file is TFolder {
-			return file instanceof TFolder;
-		}
-
 		// Add command to convert entire folder
 		this.addCommand({
 			id: 'convert-folder-to-obsidian-latex',
@@ -130,11 +129,13 @@ export default class MyPlugin extends Plugin {
 						).open();
 					});
 
-					if (!folderPath) return;
+					if (!folderPath) {
+       return;
+     }
 
 					// Get folder abstract file
 					const targetFolder = this.app.vault.getAbstractFileByPath(folderPath);
-					if (!isTFolder(targetFolder)) {
+					if (!this.isTFolder(targetFolder)) {
 						new Notice('Selected path is not a folder');
 						return;
 					}
