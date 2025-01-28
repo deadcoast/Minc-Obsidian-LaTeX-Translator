@@ -1,24 +1,29 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "inlineSourceMap": true,
-    "inlineSources": true,
+    "baseUrl": "../../../Downloads/project 3", // Ensure this path is correct relative to your project structure
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "module": "ESNext",
-    "target": "ES6",
-    "allowJs": true,
+    "target": "ES2020",
+    "allowJs": true, // Allows compilation of JavaScript files; set to false if not needed
     "noImplicitAny": true,
     "moduleResolution": "node",
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "esModuleInterop": true, // Enables interoperability between CommonJS and ES Modules
+    "allowSyntheticDefaultImports": true, // Allows default imports from modules without default exports
+    "strict": true, // Enables all strict type-checking options
     "lib": [
       "DOM",
-      "ES5",
-      "ES6",
-      "ES7"
-    ]
+      "ES2020",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx" // Use "react-jsx" for the new JSX transform in React 17+
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "**/*.tsx"
   ]
 }

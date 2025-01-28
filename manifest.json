@@ -1,10 +1,10 @@
 {
-	"id": "Minc-Obsidian-LaTeX-Translator",
-	"name": "M|inc - Obsidian LaTeX Translator",
+	"id": "obsidian-minc-latex-translator",
+	"name": "Obsidian M|inc LaTeX Translator",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
+	"description": "Convert classic LaTeX to Obsidian Math Incorperation LaTeX style.",
+	"author": "M|inc Team",
 	"authorUrl": "https://github.com/deadcoast/Minc-Obsidian-LaTeX-Translator",
 	"fundingUrl": "https://github.com/deadcoast",
 	"isDesktopOnly": false
