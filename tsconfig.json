@@ -22,7 +22,18 @@
     ],
     "jsx": "react-jsx" // Use "react-jsx" for the new JSX transform in React 17+
   },
-  "include": [
+	"baseUrl": ".", // Set to your project's root
+	"paths": {
+		"@components/*": ["src/views/*"],
+		"@utils/*": ["src/utils/*"]
+	},
+	"exclude": [
+		"node_modules",
+		"dist",
+		"**/*.spec.ts",
+		"**/*.test.tsx"
+	],
+	"include": [
     "**/*.ts",
     "**/*.tsx"
   ]

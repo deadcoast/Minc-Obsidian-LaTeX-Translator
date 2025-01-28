@@ -1,15 +1,10 @@
+// ReactView.tsx
+
 // Import Statements
-import * as React from "react"; // Adjusted to named import to comply without 'allowSyntheticDefaultImports'
-import { useCallback, useState } from "react";
+import * as React from "react"; // Named import to comply without 'allowSyntheticDefaultImports'
+import { useCallback, useState, createContext, useContext } from "react";
 import { Notice, TFolder, TFile, Modal, App } from "obsidian";
-import { useApp } from "../hooks";
-import { parseLatexToObsidian, ParserOptions } from "../latexParser";
-import * as React from "react";
-import { render } from "react-dom";
-import { AppProvider } from "obsidian";
-import { ReactView } from "src/views/ReactView.tsx";
-import { App as ObsidianApp } from "obsidian";
-// Import the FileConversionProgress component
+import { parseLatexToObsidian, ParserOptions } from "../latexParser"; // Ensure correct path
 import FileConversionProgress from "./FileConversionProgress"; // Ensure this path is correct
 
 // Define Parser Options
@@ -23,14 +18,33 @@ const DEFAULT_PARSER_OPTIONS: ParserOptions = {
 	unifyTextToMathrm: true,
 };
 
-const app: ObsidianApp = /Applications/Obsidian.app; // Initialize your Obsidian app instance
+/**
+ * Context to provide the Obsidian App instance to React components.
+ */
+interface AppContextType {
+	app: App;
+}
 
-render(
-	<AppProvider app={app}>
-		<ReactView />
-	</AppProvider>,
-	document.getElementById("root")
-);
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+/**
+ * AppProvider component to wrap around React components and provide the Obsidian App via context.
+ */
+const AppProvider: React.FC<{ app: App }> = ({ app, children }) => {
+	return <AppContext.Provider value={{ app }}>{children}</AppContext.Provider>;
+};
+
+/**
+ * Custom hook to use the App context.
+ * Ensures that the hook is used within an AppProvider.
+ */
+const useApp = (): App => {
+	const context = useContext(AppContext);
+	if (!context) {
+		throw new Error("useApp must be used within an AppProvider");
+	}
+	return context.app;
+};
 
 /**
  * Modal for selecting a folder path.
@@ -82,13 +96,7 @@ class FolderSelectModal extends Modal {
 
 /**
  * React component for displaying file conversion progress.
- * Ensure that this component is defined correctly in './FileConversionProgress'.
  */
-interface FileConversionProgressProps {
-	current: number;
-	total: number;
-}
-
 interface FileConversionProgressProps {
 	current: number;
 	total: number;
@@ -104,14 +112,12 @@ const FileConversionProgress: React.FC<FileConversionProgressProps> = ({ current
 	);
 };
 
-export default FileConversionProgress;
-
-
 /**
  * React component for the LaTeX Translator view.
+ * This component is wrapped with AppProvider to access the Obsidian App instance.
  */
 export const ReactView: React.FC = () => {
-	const app = useApp(); // Access the Obsidian app
+	const app = useApp(); // Access the Obsidian app via context
 	const [input, setInput] = useState<string>("");
 	const [output, setOutput] = useState<string>("");
 	const [error, setError] = useState<string | null>(null);
@@ -291,3 +297,51 @@ export const ReactView: React.FC = () => {
 		</div>
 	);
 };
+
+/**
+ * Initialize the React application and render ReactView.
+ * This part should be handled in your main plugin file, not within ReactView.tsx.
+ * Provided here for completeness.
+ */
+
+// Example: In your main plugin file (e.g., main.ts), you would render the React component like this:
+
+/*
+import { Plugin } from "obsidian";
+import * as React from "react";
+import { render } from "react-dom";
+import { AppProvider, ReactView } from "./ReactView"; // Adjust the path as necessary
+
+export default class LaTeXTranslatorPlugin extends Plugin {
+  onload() {
+    // Create a container for the React app
+    const container = document.createElement("div");
+    container.id = "react-view-container";
+    this.app.workspace.getRightLeaf(false).setViewState({
+      type: "react-view", // Ensure this view type is registered
+      active: true,
+    });
+
+    // Append the container to the leaf
+    this.app.workspace.activeLeaf.view.containerEl.appendChild(container);
+
+    // Render the React app
+    render(
+      <AppProvider app={this.app}>
+        <ReactView />
+      </AppProvider>,
+      container
+    );
+  }
+
+  onunload() {
+    // Clean up the React app when the plugin is unloaded
+    const container = document.getElementById("react-view-container");
+    if (container) {
+      unmountComponentAtNode(container);
+      container.remove();
+    }
+  }
+}
+*/
+
