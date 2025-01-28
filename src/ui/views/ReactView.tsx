@@ -4,8 +4,8 @@
 import * as React from "react"; // Named import to comply without 'allowSyntheticDefaultImports'
 import { useCallback, useState, createContext, useContext } from "react";
 import { Notice, TFolder, TFile, Modal, App } from "obsidian";
-import { parseLatexToObsidian, ParserOptions } from "../latexParser"; // Ensure correct path
-import { FileConversionProgress } from "./FileConversionProgress"; // Using named import
+import { parseLatexToObsidian, ParserOptions } from "@core/parser"; // Ensure correct path
+import { FileConversionProgress } from "@views/index"; // Using named import
 
 // Define Parser Options
 const DEFAULT_PARSER_OPTIONS: ParserOptions = {
@@ -98,7 +98,7 @@ class FolderSelectModal extends Modal {
  * React component for the LaTeX Translator view.
  * This component is wrapped with AppProvider to access the Obsidian App instance.
  */
-export function ReactView({ app }: { app: App }) {
+export default function ReactView({ app }: { app: App }) {
 	const [input, setInput] = useState<string>("");
 	const [output, setOutput] = useState<string>("");
 	const [error, setError] = useState<string | null>(null);

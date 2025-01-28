@@ -1,8 +1,8 @@
 import { ItemView, WorkspaceLeaf, App } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
-import { ReactView } from './ReactView';
-import { AppContext } from '../context';
+import { ReactView } from '@views/index';
+import { AppContext } from '@core/context';
 
 export const LATEX_VIEW_TYPE = 'latex-translator-view';
 
