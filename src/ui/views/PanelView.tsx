@@ -3,7 +3,9 @@ import styled from 'styled-components';
 import { EditorView, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
-import { basicSetup } from '@codemirror/basic-setup';
+import { keymap } from '@codemirror/view';
+import { defaultKeymap } from '@codemirror/commands';
+import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { Notice } from 'obsidian';
 import { transformMarkdownToLatex } from '@core/parser';
 
@@ -82,7 +84,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     const sourceEditorState = EditorState.create({
       doc: initialContent,
       extensions: [
-        basicSetup,
+        keymap.of(defaultKeymap),
+        syntaxHighlighting(defaultHighlightStyle),
         markdown(),
         EditorView.updateListener.of((update: ViewUpdate) => {
           if (update.docChanged) {
@@ -120,7 +123,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     const outputEditorState = EditorState.create({
       doc: '',
       extensions: [
-        basicSetup,
+        keymap.of(defaultKeymap),
+        syntaxHighlighting(defaultHighlightStyle),
         EditorState.readOnly.of(true),
         EditorView.theme({
           '&': {

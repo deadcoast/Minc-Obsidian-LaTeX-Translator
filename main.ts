@@ -1,7 +1,7 @@
 import { Plugin, WorkspaceLeaf, Editor, Notice } from 'obsidian';
-import { LatexView, LATEX_VIEW_TYPE } from './src/views/LatexView';
+import { LatexView, LATEX_VIEW_TYPE } from './src/ui/views/LatexView';
 import { MincLatexSettings, DEFAULT_SETTINGS, MincLatexSettingTab } from './src/settings';
-import { parseLatexToObsidian } from './src/latexParser';
+import { parseLatexToObsidian } from './src/core/parser/latexParser';
 import { logger } from './src/utils/logger';
 import {
 	TAbstractFile,
