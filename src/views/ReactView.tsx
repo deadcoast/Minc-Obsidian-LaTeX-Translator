@@ -5,7 +5,7 @@ import * as React from "react"; // Named import to comply without 'allowSyntheti
 import { useCallback, useState, createContext, useContext } from "react";
 import { Notice, TFolder, TFile, Modal, App } from "obsidian";
 import { parseLatexToObsidian, ParserOptions } from "../latexParser"; // Ensure correct path
-import FileConversionProgress from "./FileConversionProgress"; // Ensure this path is correct
+import { FileConversionProgress } from "./FileConversionProgress"; // Using named import
 
 // Define Parser Options
 const DEFAULT_PARSER_OPTIONS: ParserOptions = {
@@ -30,7 +30,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 /**
  * AppProvider component to wrap around React components and provide the Obsidian App via context.
  */
-const AppProvider: React.FC<{ app: App }> = ({ app, children }) => {
+const AppProvider: React.FC<{ app: App; children: React.ReactNode }> = ({ app, children }) => {
 	return <AppContext.Provider value={{ app }}>{children}</AppContext.Provider>;
 };
 
@@ -95,94 +95,31 @@ class FolderSelectModal extends Modal {
 }
 
 /**
- * React component for displaying file conversion progress.
- */
-interface FileConversionProgressProps {
-	current: number;
-	total: number;
-}
-
-const FileConversionProgress: React.FC<FileConversionProgressProps> = ({ current, total }) => {
-	const percentage = total === 0 ? 0 : (current / total) * 100;
-	return (
-		<div className="file-conversion-progress">
-			<div className="progress-bar" style={{ width: `${percentage}%` }}></div>
-			<span>{`Converting file ${current} of ${total}`}</span>
-		</div>
-	);
-};
-
-/**
  * React component for the LaTeX Translator view.
  * This component is wrapped with AppProvider to access the Obsidian App instance.
  */
-export const ReactView: React.FC = () => {
-	const app = useApp(); // Access the Obsidian app via context
+export function ReactView({ app }: { app: App }) {
 	const [input, setInput] = useState<string>("");
 	const [output, setOutput] = useState<string>("");
 	const [error, setError] = useState<string | null>(null);
 	const [isConverting, setIsConverting] = useState<boolean>(false);
 	const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
 
-	/**
-	 * Converts a single markdown file by parsing its LaTeX content.
-	 * @param file - The markdown file to convert.
-	 * @returns A promise that resolves to true if conversion is successful, otherwise false.
-	 */
 	const convertFile = useCallback(
 		async (file: TFile): Promise<boolean> => {
 			try {
-				const content = await app.vault.read(file);
+				const content = await useApp().vault.read(file);
 				const converted = parseLatexToObsidian(content, DEFAULT_PARSER_OPTIONS);
-				await app.vault.modify(file, converted);
+				await useApp().vault.modify(file, converted);
 				return true;
 			} catch (error) {
 				console.error(`Error converting ${file.path}:`, error);
 				return false;
 			}
 		},
-		[app.vault]
-	);
-
-	/**
-	 * Handles changes in the LaTeX input textarea.
-	 * Parses the input and updates the output preview.
-	 * @param e - The change event from the textarea.
-	 */
-	const handleInputChange = useCallback(
-		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			const newInput = e.target.value;
-			setInput(newInput);
-
-			try {
-				const converted = parseLatexToObsidian(newInput, DEFAULT_PARSER_OPTIONS);
-				setOutput(converted);
-				setError(null);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "An error occurred");
-				new Notice("Error converting LaTeX: " + (err instanceof Error ? err.message : "Unknown error"));
-			}
-		},
 		[]
 	);
 
-	/**
-	 * Copies the converted LaTeX output to the clipboard.
-	 */
-	const handleCopy = useCallback(() => {
-		if (output) {
-			navigator.clipboard
-				.writeText(output)
-				.then(() => new Notice("Converted LaTeX copied to clipboard!"))
-				.catch(() => new Notice("Failed to copy to clipboard"));
-		}
-	}, [output]);
-
-	/**
-	 * Processes all markdown files within a specified folder.
-	 * @param folder - The target folder containing markdown files.
-	 * @returns An object containing the total and successfully converted file counts.
-	 */
 	const processFolder = useCallback(
 		async (folder: TFolder): Promise<{ total: number; success: number }> => {
 			const files = folder.children.filter(
@@ -193,21 +130,23 @@ export const ReactView: React.FC = () => {
 
 			let successCount = 0;
 			for (let i = 0; i < files.length; i++) {
-				if (await convertFile(files[i])) {
+				const file = files[i];
+				try {
+					await convertFile(file);
 					successCount++;
+				} catch (error) {
+					console.error(`Error converting file ${file.path}:`, error);
 				}
-				setProgress((prev) => ({ ...prev, current: i + 1 }));
+				setProgress({ current: i + 1, total: files.length });
 			}
 
 			return { total: files.length, success: successCount };
 		},
-		[convertFile]
+		[convertFile, setProgress]
 	);
 
-	/**
-	 * Initiates the folder conversion process by prompting the user to select a folder.
-	 */
 	const handleFolderConversion = useCallback(async () => {
+		const app = useApp();
 		const folderPath = await new Promise<string | null>((resolve) => {
 			new FolderSelectModal(app, resolve).open(); // Open folder selection modal
 		});
@@ -233,17 +172,14 @@ export const ReactView: React.FC = () => {
 			setIsConverting(false);
 			setProgress({ current: 0, total: 0 });
 		}
-	}, [app, processFolder]);
+	}, [processFolder]);
 
-	/**
-	 * Initiates the vault-wide conversion process after user confirmation.
-	 */
 	const handleVaultConversion = useCallback(async () => {
 		const confirmMessage =
 			"Are you sure you want to convert all markdown files in the vault? This cannot be undone.";
 		if (!confirm(confirmMessage)) return;
 
-		const files = app.vault.getMarkdownFiles();
+		const files = useApp().vault.getMarkdownFiles();
 		setProgress({ current: 0, total: files.length });
 		setIsConverting(true);
 
@@ -261,52 +197,79 @@ export const ReactView: React.FC = () => {
 
 		setIsConverting(false);
 		setProgress({ current: 0, total: 0 });
-	}, [convertFile, app.vault]);
+	}, [convertFile]);
+
+	const handleInputChange = useCallback(
+		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+			const newInput = e.target.value;
+			setInput(newInput);
+
+			try {
+				const converted = parseLatexToObsidian(newInput, DEFAULT_PARSER_OPTIONS);
+				setOutput(converted);
+				setError(null);
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "An error occurred");
+				new Notice("Error converting LaTeX: " + (err instanceof Error ? err.message : "Unknown error"));
+			}
+		},
+		[]
+	);
+
+	const handleCopy = useCallback(() => {
+		if (output) {
+			navigator.clipboard
+				.writeText(output)
+				.then(() => new Notice("Converted LaTeX copied to clipboard!"))
+				.catch(() => new Notice("Failed to copy to clipboard"));
+		}
+	}, [output]);
 
 	return (
-		<div className="latex-translator-view">
-			<div className="batch-conversion-buttons">
-				<button className="mod-cta" onClick={handleFolderConversion} disabled={isConverting}>
-					Convert Folder
-				</button>
-				<button className="mod-warning" onClick={handleVaultConversion} disabled={isConverting}>
-					Convert Entire Vault
-				</button>
-			</div>
-			{isConverting && <FileConversionProgress current={progress.current} total={progress.total} />}
-			<div className="latex-input-section">
-				<h4>LaTeX Input</h4>
-				<textarea
-					className="latex-input"
-					placeholder="Enter LaTeX here..."
-					value={input}
-					onChange={handleInputChange}
-				/>
-			</div>
-			<div className="latex-output-section">
-				<div className="output-header">
-					<h4>Obsidian Preview</h4>
-					<button className="copy-button" onClick={handleCopy} disabled={!output}>
-						Copy
+		<AppProvider app={app}>
+			<div className="latex-translator-view">
+				<div className="batch-conversion-buttons">
+					<button className="mod-cta" onClick={handleFolderConversion} disabled={isConverting}>
+						Convert Folder
+					</button>
+					<button className="mod-warning" onClick={handleVaultConversion} disabled={isConverting}>
+						Convert Entire Vault
 					</button>
 				</div>
-				<div className={`latex-preview ${error ? "error" : ""}`}>
-					{error ? <div className="error-message">{error}</div> : output || "Preview will appear here..."}
+				{isConverting && <FileConversionProgress current={progress.current} total={progress.total} />}
+				<div className="latex-input-section">
+					<h4>LaTeX Input</h4>
+					<textarea
+						className="latex-input"
+						placeholder="Enter LaTeX here..."
+						value={input}
+						onChange={handleInputChange}
+					/>
+				</div>
+				<div className="latex-output-section">
+					<div className="output-header">
+						<h4>Obsidian Preview</h4>
+						<button className="copy-button" onClick={handleCopy} disabled={!output}>
+							Copy
+						</button>
+					</div>
+					<div className={`latex-preview ${error ? "error" : ""}`}>
+						{error ? <div className="error-message">{error}</div> : output || "Preview will appear here..."}
+					</div>
 				</div>
 			</div>
-		</div>
+		</AppProvider>
 	);
-};
 
-/**
- * Initialize the React application and render ReactView.
- * This part should be handled in your main plugin file, not within ReactView.tsx.
- * Provided here for completeness.
- */
+	/**
+	 * Initialize the React application and render ReactView.
+	 * This part should be handled in your main plugin file, not within ReactView.tsx.
+	 * Provided here for completeness.
+	 */
 
-// Example: In your main plugin file (e.g., main.ts), you would render the React component like this:
+	// Example: In your main plugin file (e.g., main.ts), you would render the React component like this:
 
-/*
+	/*
 import { Plugin } from "obsidian";
 import * as React from "react";
 import { render } from "react-dom";
@@ -343,5 +306,5 @@ export default class LaTeXTranslatorPlugin extends Plugin {
     }
   }
 }
-*/
-
+	*/
+}
