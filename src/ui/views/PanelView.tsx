@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { EditorView, ViewUpdate } from '@codemirror/view';
+import { EditorView, ViewUpdate, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { markdown } from '@codemirror/lang-markdown';
-import { keymap } from '@codemirror/view';
 import { defaultKeymap } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { markdown } from '@codemirror/lang-markdown';
 import { Notice } from 'obsidian';
 import { parseLatexToObsidian } from '@core/parser';
 
@@ -107,13 +106,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
               }
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
-              new Notice('Error transforming markdown to LaTeX: ' + errorMessage);
+              new Notice('Error parsing LaTeX: ' + errorMessage);
             }
-          }
-        }),
-        EditorView.theme({
-          '&': {
-            height: '100%'
           }
         })
       ]
@@ -121,55 +115,49 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
     // Output editor setup
     const outputEditorState = EditorState.create({
-      doc: '',
+      doc: latexOutput,
       extensions: [
         keymap.of(defaultKeymap),
         syntaxHighlighting(defaultHighlightStyle),
-        EditorState.readOnly.of(true),
-        EditorView.theme({
-          '&': {
-            height: '100%'
-          }
-        })
+        markdown(),
+        EditorView.editable.of(false)
       ]
     });
 
-    // Create editors
     if (sourceEditorDomRef.current && outputEditorDomRef.current) {
-      const sourceEditor = new EditorView({
+      sourceEditorRef.current = new EditorView({
         state: sourceEditorState,
         parent: sourceEditorDomRef.current
       });
 
-      const outputEditor = new EditorView({
+      outputEditorRef.current = new EditorView({
         state: outputEditorState,
         parent: outputEditorDomRef.current
       });
-
-      sourceEditorRef.current = sourceEditor;
-      outputEditorRef.current = outputEditor;
-
-      return () => {
-        sourceEditor.destroy();
-        outputEditor.destroy();
-      };
     }
-  }, [initialContent, onContentChange]);
 
-  const handleCopyLatex = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(latexOutput);
-      new Notice('LaTeX copied to clipboard!');
-    } catch (error) {
-      new Notice('Failed to copy to clipboard');
-    }
-  }, [latexOutput]);
+    return () => {
+      sourceEditorRef.current?.destroy();
+      outputEditorRef.current?.destroy();
+    };
+  }, []);
 
   return (
     <Container>
       <Toolbar>
-        <div>LaTeX Preview</div>
-        <Button onClick={handleCopyLatex}>Copy LaTeX</Button>
+        <Button onClick={() => {
+          try {
+            const content = sourceEditorRef.current?.state.doc.toString() || '';
+            const latex = parseLatexToObsidian(content);
+            setLatexOutput(latex);
+            new Notice('LaTeX converted successfully!');
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            new Notice('Error parsing LaTeX: ' + errorMessage);
+          }
+        }}>
+          Convert LaTeX
+        </Button>
       </Toolbar>
       <EditorContainer>
         <EditorPane ref={sourceEditorDomRef} />

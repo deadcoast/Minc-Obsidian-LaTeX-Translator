@@ -12,6 +12,12 @@
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -28,10 +34,12 @@
       "@views/*": ["src/ui/views/*"],
       "@hooks/*": ["src/ui/hooks/*"],
       "@styles/*": ["src/ui/styles/*"],
-      "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@utils/*": ["src/utils/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "main.ts"
+  ]
 }

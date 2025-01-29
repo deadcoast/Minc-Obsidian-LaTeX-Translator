@@ -1,12 +1,13 @@
 const path = require('path');
 const builtins = require('builtin-modules');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: './main.ts',
     output: {
         filename: 'main.js',
         path: __dirname,
-        libraryTarget: 'commonjs'
+        libraryTarget: 'commonjs',
     },
     target: 'node',
     mode: 'production',
@@ -35,20 +36,29 @@ module.exports = {
             '@utils': path.resolve(__dirname, 'src/utils')
         }
     },
+    plugins: [
+        new CopyPlugin({
+            patterns: [
+                { 
+                    from: 'src/ui/styles/global.css',
+                    to: 'styles.css'
+                }
+            ]
+        })
+    ],
     externals: {
-        obsidian: 'commonjs2 obsidian',
-        electron: 'commonjs2 electron',
-        '@codemirror/autocomplete': 'commonjs2 @codemirror/autocomplete',
-        '@codemirror/collab': 'commonjs2 @codemirror/collab',
-        '@codemirror/commands': 'commonjs2 @codemirror/commands',
-        '@codemirror/language': 'commonjs2 @codemirror/language',
-        '@codemirror/lint': 'commonjs2 @codemirror/lint',
-        '@codemirror/search': 'commonjs2 @codemirror/search',
-        '@codemirror/state': 'commonjs2 @codemirror/state',
-        '@codemirror/view': 'commonjs2 @codemirror/view',
-        '@lezer/common': 'commonjs2 @lezer/common',
-        '@lezer/highlight': 'commonjs2 @lezer/highlight',
-        '@lezer/lr': 'commonjs2 @lezer/lr',
-        ...builtins.reduce((acc, mod) => ({...acc, [mod]: 'commonjs2 ' + mod}), {})
+        obsidian: 'commonjs obsidian',
+        '@codemirror/state': 'commonjs @codemirror/state',
+        '@codemirror/view': 'commonjs @codemirror/view',
+        '@codemirror/language': 'commonjs @codemirror/language',
+        '@codemirror/commands': 'commonjs @codemirror/commands',
+        '@codemirror/search': 'commonjs @codemirror/search',
+        '@codemirror/lang-markdown': 'commonjs @codemirror/lang-markdown',
+        '@codemirror/lang-html': 'commonjs @codemirror/lang-html',
+        '@lezer/common': 'commonjs @lezer/common',
+        '@lezer/highlight': 'commonjs @lezer/highlight',
+        '@lezer/lr': 'commonjs @lezer/lr',
+        electron: 'commonjs electron',
+        ...builtins.reduce((acc, mod) => ({...acc, [mod]: 'commonjs ' + mod}), {})
     }
 };

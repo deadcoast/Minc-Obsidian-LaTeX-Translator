@@ -10,58 +10,58 @@ interface LogEntry {
 }
 
 class Logger {
-    private logs: LogEntry[] = [];
-    private maxLogs = 100;
-    private showNotifications: boolean;
+  private logs: LogEntry[] = [];
+  private maxLogs = 100;
+  private showNotifications: boolean;
 
-    constructor(showNotifications = true) {
-        this.showNotifications = showNotifications;
+  constructor(showNotifications = true) {
+    this.showNotifications = showNotifications;
+  }
+
+  log(level: LogLevel, message: string, details?: unknown) {
+    const entry: LogEntry = {
+      level,
+      message,
+      timestamp: new Date(),
+      details
+    };
+
+    this.logs.unshift(entry);
+    if (this.logs.length > this.maxLogs) {
+      this.logs.pop();
     }
 
-    log(level: LogLevel, message: string, details?: unknown) {
-        const entry: LogEntry = {
-            level,
-            message,
-            timestamp: new Date(),
-            details
-        };
-
-        this.logs.unshift(entry);
-        if (this.logs.length > this.maxLogs) {
-            this.logs.pop();
-        }
-
-        if (this.showNotifications) {
-            new Notice(message);
-        }
-
-        // Also log to console for debugging
-        console.log(`[LaTeX Translator] ${level.toUpperCase()}: ${message}`, details || '');
+    if (this.showNotifications) {
+      new Notice(message);
     }
 
-    info(message: string, details?: unknown) {
-        this.log('info', message, details);
-    }
+    // Also log to console for debugging
+    console.log(`[LaTeX Translator] ${level.toUpperCase()}: ${message}`, details || '');
+  }
 
-    warning(message: string, details?: unknown) {
-        this.log('warning', message, details);
-    }
+  info(message: string, details?: unknown) {
+    this.log('info', message, details);
+  }
 
-    error(message: string, details?: unknown) {
-        this.log('error', message, details);
-    }
+  warning(message: string, details?: unknown) {
+    this.log('warning', message, details);
+  }
 
-    getLogs(): LogEntry[] {
-        return [...this.logs];
-    }
+  error(message: string, details?: unknown) {
+    this.log('error', message, details);
+  }
 
-    clearLogs() {
-        this.logs = [];
-    }
+  getLogs(): LogEntry[] {
+    return [...this.logs];
+  }
 
-    setNotifications(show: boolean) {
-        this.showNotifications = show;
-    }
+  clearLogs() {
+    this.logs = [];
+  }
+
+  setNotifications(show: boolean) {
+    this.showNotifications = show;
+  }
 }
 
 export const logger = new Logger();

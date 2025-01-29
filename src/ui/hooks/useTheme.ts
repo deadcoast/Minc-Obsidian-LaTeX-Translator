@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../hooks';
 
-export const useTheme = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+type Theme = 'light' | 'dark';
+
+export const useTheme = (): Theme => {
+  const [theme, setTheme] = useState<Theme>('light');
   const { app } = useApp();
 
   useEffect(() => {
@@ -24,4 +26,9 @@ export const useTheme = () => {
   }, [app]);
 
   return theme;
+};
+
+export const useThemeClass = (): string => {
+  const theme = useTheme();
+  return `theme-${theme}`;
 };

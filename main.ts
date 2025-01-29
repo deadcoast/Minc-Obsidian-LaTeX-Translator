@@ -1,8 +1,8 @@
-import { Plugin, WorkspaceLeaf, Editor, Notice } from 'obsidian';
-import { LatexView, LATEX_VIEW_TYPE } from './src/ui/views/LatexView';
-import { MincLatexSettings, DEFAULT_SETTINGS, MincLatexSettingTab } from './src/settings';
-import { parseLatexToObsidian } from './src/core/parser/latexParser';
-import { logger } from './src/utils/logger';
+import { Plugin, WorkspaceLeaf, Editor, Notice, View } from 'obsidian';
+import { LatexView, LATEX_VIEW_TYPE } from '@views/LatexView';
+import { MincLatexSettings, DEFAULT_SETTINGS, MincLatexSettingTab } from '@core/settings';
+import { parseLatexToObsidian } from '@core/parser/latexParser';
+import { logger } from '@utils/logger';
 import {
 	TAbstractFile,
 	TFile,
@@ -57,28 +57,36 @@ class PromptModal extends Modal {
 	}
 }
 
-export default class MyPlugin extends Plugin {
+export class MincLatexTranslatorPlugin extends Plugin {
 	settings: MincLatexSettings = DEFAULT_SETTINGS;
+	private activeView: View | null = null;
 
 	private isTFolder(file: TAbstractFile | null): file is TFolder {
 		return file instanceof TFolder;
 	}
 
 	async onload() {
+		logger.info('Loading M|inc LaTeX Translator plugin...');
+		
 		await this.loadSettings();
 
 		// Configure logger
 		logger.setNotifications(this.settings.showNotifications);
 
+		// Register view
 		this.registerView(
 			LATEX_VIEW_TYPE,
-			(leaf: WorkspaceLeaf) => new LatexView(leaf)
+			(leaf: WorkspaceLeaf) => {
+				this.activeView = new LatexView(leaf);
+				return this.activeView;
+			}
 		);
 
 		// Add ribbon icon for LaTeX Translator
-		this.addRibbonIcon('function', 'M|inc LaTeX Translator', () => {
+		const ribbonIcon = this.addRibbonIcon('function', 'M|inc LaTeX Translator', () => {
 			this.activateView();
 		});
+		ribbonIcon.addClass('minc-latex-translator-ribbon-icon');
 
 		// Add command to open LaTeX Translator
 		this.addCommand({
@@ -105,6 +113,7 @@ export default class MyPlugin extends Plugin {
 							new Notice('LaTeX converted successfully!');
 						}
 					} catch (error) {
+						logger.error('Error converting LaTeX:', error);
 						if (this.settings.showNotifications) {
 							new Notice('Error converting LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
 						}
@@ -120,7 +129,6 @@ export default class MyPlugin extends Plugin {
 			icon: 'folder-plus',
 			callback: async () => {
 				try {
-					// Prompt user to enter a folder path
 					const folderPath = await new Promise<string | null>((resolve) => {
 						new PromptModal(
 							this.app,
@@ -130,125 +138,95 @@ export default class MyPlugin extends Plugin {
 					});
 
 					if (!folderPath) {
-       return;
-     }
+						return;
+					}
 
-					// Get folder abstract file
 					const targetFolder = this.app.vault.getAbstractFileByPath(folderPath);
 					if (!this.isTFolder(targetFolder)) {
 						new Notice('Selected path is not a folder');
 						return;
 					}
 
-					// Filter target folder children for markdown files
 					const files = targetFolder.children
 						.filter((file): file is TFile =>
 							file instanceof TFile && file.extension === 'md'
 						);
 
-					let successCount = 0; // Keep track of successful conversions
+					let successCount = 0;
+					let errorCount = 0;
+					
 					for (const file of files) {
-						const content = await this.app.vault.read(file); // Read file content
-						const converted = parseLatexToObsidian(content, this.settings); // Convert content
-						await this.app.vault.modify(file, converted); // Save converted content
-						successCount++;
+						try {
+							const content = await this.app.vault.read(file);
+							const converted = parseLatexToObsidian(content, this.settings);
+							await this.app.vault.modify(file, converted);
+							successCount++;
+						} catch (error) {
+							logger.error(`Error converting file ${file.path}:`, error);
+							errorCount++;
+						}
 					}
 
-					// Notify user of conversion success
-					if (this.settings.showNotifications) {
-						new Notice(`Converted ${successCount} files successfully!`);
-					}
-				} catch (error) {
-					// Handle errors gracefully
 					if (this.settings.showNotifications) {
 						new Notice(
-							'Error converting folder: ' +
-							(error instanceof Error
-								? error.message
-								: 'Unknown error')
+							`Conversion complete!\n${successCount} files converted successfully.\n${errorCount} files had errors.`
 						);
 					}
-					logger.error('Error converting folder:', error);
+				} catch (error) {
+					logger.error('Error in folder conversion:', error);
+					if (this.settings.showNotifications) {
+						new Notice('Error converting folder: ' + (error instanceof Error ? error.message : 'Unknown error'));
+					}
 				}
 			}
 		});
 
+		// Add settings tab
 		this.addSettingTab(new MincLatexSettingTab(this.app, this));
 
-		// Register paste event handler for auto-replace
-		if (this.settings.autoReplace) {
-			this.registerEvent(
-				// Handle paste events for auto-conversion
-				this.app.workspace.on('editor-paste', (evt: ClipboardEvent, editor: Editor) => {
-					if (evt.clipboardData) {
-						const text = evt.clipboardData.getData('text');
-						try {
-							const converted = parseLatexToObsidian(text, this.settings);
-							evt.preventDefault();
-							editor.replaceSelection(converted);
-						} catch (error) {
-							logger.error('Auto-replace failed:', error);
-							console.error('Auto-replace failed:', error);
-						}
-					}
-				})
-			);
-		}
+		logger.info('M|inc LaTeX Translator plugin loaded successfully');
 	}
 
-	onunload() {
-		this.app.workspace.detachLeavesOfType(LATEX_VIEW_TYPE);
+	async onunload() {
+		logger.info('Unloading M|inc LaTeX Translator plugin...');
+		
+		// Clean up view
+		if (this.activeView) {
+			await this.app.workspace.detachLeavesOfType(LATEX_VIEW_TYPE);
+			this.activeView = null;
+		}
 	}
 
 	async activateView() {
 		try {
-			const { workspace } = this.app;
-
-			// Get the first leaf with the specific LATEX_VIEW_TYPE, or null if none exists
-			let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(LATEX_VIEW_TYPE)[0];
-
-			// If no leaf exists, create a new one
-			if (!leaf) {
-				const newLeaf = workspace.getRightLeaf(false);
-
-				// Ensure that newLeaf is not null
-				if (!newLeaf) {
-					throw new Error("Failed to create a new workspace leaf.");
-				}
-
-				leaf = newLeaf;
-
-				await leaf.setViewState({
-					type: LATEX_VIEW_TYPE,
-					active: true,
-				});
+			const leaves = this.app.workspace.getLeavesOfType(LATEX_VIEW_TYPE);
+			
+			if (leaves.length > 0) {
+				// View already exists, just reveal it
+				this.app.workspace.revealLeaf(leaves[0]);
+				return;
 			}
 
-			// Now reveal the leaf safely
-			workspace.revealLeaf(leaf);
+			// Create new leaf and view
+			const leaf = this.app.workspace.getRightLeaf(false);
+			await leaf.setViewState({ type: LATEX_VIEW_TYPE });
+			this.app.workspace.revealLeaf(leaf);
 		} catch (error) {
-			// Log the error and notify the user
-			logger.error('Failed to activate LaTeX view:', error);
-			new Notice('Failed to open LaTeX Translator view');
+			logger.error('Error activating LaTeX Translator view:', error);
+			if (this.settings.showNotifications) {
+				new Notice('Error opening LaTeX Translator: ' + (error instanceof Error ? error.message : 'Unknown error'));
+			}
 		}
 	}
 
 	async loadSettings() {
-		try {
-			const loadedData = await this.loadData();
-			this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-		} catch (error) {
-			logger.error('Failed to load settings:', error);
-			this.settings = Object.assign({}, DEFAULT_SETTINGS);
-		}
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
-		try {
-			await this.saveData(this.settings);
-		} catch (error) {
-			logger.error('Failed to save settings:', error);
-			new Notice('Failed to save settings');
-		}
+		await this.saveData(this.settings);
+		logger.setNotifications(this.settings.showNotifications);
 	}
 }
+
+export default MincLatexTranslatorPlugin;
