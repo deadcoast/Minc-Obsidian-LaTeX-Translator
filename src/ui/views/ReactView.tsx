@@ -2,22 +2,12 @@
 
 // Import Statements
 import * as React from 'react'; // Named import to comply without 'allowSyntheticDefaultImports'
-import { useCallback, useState, createContext, useContext } from 'react';
+import { useCallback, useState, createContext, useContext, useMemo } from 'react';
 import { Notice, TFolder, TFile, Modal, App } from 'obsidian';
-import { parseLatexToObsidian, ParserOptions } from '@core/parser'; // Ensure correct path
+import { parseLatexToObsidian } from '@core/parser'; // Ensure correct path
 import { FileConversionProgress } from '@views/index'; // Using named import
-import { LatexTranslatorPlugin } from '../../main'; // Import plugin type
-
-// Define Parser Options
-const DEFAULT_PARSER_OPTIONS: ParserOptions = {
-  convertEnvironments: true,
-  removeLabels: false,
-  handleRefs: 'placeholder',
-  expandMacros: true,
-  convertCitations: true,
-  removeLeftRight: false,
-  unifyTextToMathrm: true,
-};
+import LatexTranslatorPlugin from '../../main'; // Import plugin type
+import { settingsToParserOptions } from '../../core/settings/settings';
 
 /**
  * Context to provide the Obsidian App instance to React components.
@@ -111,19 +101,34 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
 
+  // Use plugin settings for parsing
+  const parserOptions = useMemo(() => settingsToParserOptions(plugin.settings), [plugin.settings]);
+
   const convertFile = useCallback(
     async (file: TFile): Promise<boolean> => {
       try {
         const content = await useApp().vault.read(file);
-        const converted = parseLatexToObsidian(content, DEFAULT_PARSER_OPTIONS);
+        const converted = parseLatexToObsidian(content, parserOptions);
         await useApp().vault.modify(file, converted);
+        
+        // Add to command history
+        plugin.history.addEntry({
+          timestamp: Date.now(),
+          commandId: `file_conversion_${Date.now()}`,
+          commandName: 'convertFile',
+          selectionLength: content.length,
+          success: true,
+          options: parserOptions,
+          duration: 0 // You might want to calculate actual duration if needed
+        });
+        
         return true;
       } catch (error) {
         console.error(`Error converting ${file.path}:`, error);
         return false;
       }
     },
-    []
+    [plugin, parserOptions]
   );
 
   const processFolder = useCallback(
@@ -215,7 +220,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
       setInput(newInput);
 
       try {
-        const converted = parseLatexToObsidian(newInput, DEFAULT_PARSER_OPTIONS);
+        const converted = parseLatexToObsidian(newInput, parserOptions);
         setOutput(converted);
         setError(null);
       } catch (err) {
@@ -223,7 +228,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
         new Notice('Error converting LaTeX: ' + (err instanceof Error ? err.message : 'Unknown error'));
       }
     },
-    []
+    [parserOptions]
   );
 
   const handleCopy = useCallback(() => {

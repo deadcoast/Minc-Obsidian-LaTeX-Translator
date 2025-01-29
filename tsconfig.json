@@ -8,7 +8,7 @@
     "target": "ES2020",
     "allowJs": true,
     "noImplicitAny": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
@@ -28,18 +28,32 @@
     ],
     "jsx": "react-jsx",
     "paths": {
-      "@core/*": ["src/core/*"],
-      "@ui/*": ["src/ui/*"],
-      "@components/*": ["src/ui/components/*"],
-      "@views/*": ["src/ui/views/*"],
-      "@hooks/*": ["src/ui/hooks/*"],
-      "@styles/*": ["src/ui/styles/*"],
-      "@utils/*": ["src/utils/*"]
-    }
+      "@core/*": ["./src/core/*"],
+      "@ui/*": ["./src/ui/*"],
+      "@components/*": ["./src/ui/components/*"],
+      "@views/*": ["./src/ui/views/*"],
+      "@hooks/*": ["./src/ui/hooks/*"],
+      "@styles/*": ["./src/ui/styles/*"],
+      "@utils/*": ["./src/utils/*"]
+    },
+    "resolveJsonModule": true,
+    "typeRoots": ["./node_modules/@types"],
+    "rootDir": ".",
+    "outDir": "./dist",
+    "plugins": [
+      { "name": "typescript-plugin-css-modules" }
+    ]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
     "main.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    { "path": "./tsconfig.node.json" }
   ]
 }
