@@ -1,11 +1,10 @@
 // src/hooks/useTheme.ts
 import { useEffect, useState } from 'react';
-import { App } from 'obsidian';
 import { useApp } from '../hooks';
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const app = useApp() as App;
+  const { app } = useApp();
 
   useEffect(() => {
     const updateTheme = () => {

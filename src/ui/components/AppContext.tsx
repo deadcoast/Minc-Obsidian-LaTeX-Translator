@@ -5,7 +5,7 @@ interface AppContextType {
   app: App;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ app: App; children: React.ReactNode }> = ({
   app,

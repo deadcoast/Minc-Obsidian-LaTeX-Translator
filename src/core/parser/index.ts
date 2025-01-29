@@ -1,1 +1,2 @@
-export { parseLatexToObsidian, transformMarkdownToLatex, ParserOptions, ParserError } from './latexParser';
+export { parseLatexToObsidian } from './latexParser';
+export type { ParserOptions } from './latexParser';

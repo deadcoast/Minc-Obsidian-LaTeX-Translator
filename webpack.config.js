@@ -24,7 +24,16 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js']
+        extensions: ['.tsx', '.ts', '.js'],
+        alias: {
+            '@core': path.resolve(__dirname, 'src/core'),
+            '@ui': path.resolve(__dirname, 'src/ui'),
+            '@components': path.resolve(__dirname, 'src/ui/components'),
+            '@views': path.resolve(__dirname, 'src/ui/views'),
+            '@hooks': path.resolve(__dirname, 'src/ui/hooks'),
+            '@styles': path.resolve(__dirname, 'src/ui/styles'),
+            '@utils': path.resolve(__dirname, 'src/utils')
+        }
     },
     externals: {
         obsidian: 'commonjs2 obsidian',

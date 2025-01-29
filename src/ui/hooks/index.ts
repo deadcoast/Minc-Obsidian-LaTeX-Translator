@@ -1,2 +1,2 @@
-export { useTheme } from './useTheme';
+export * from './useTheme';
 export * from './general';

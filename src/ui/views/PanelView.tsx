@@ -7,7 +7,7 @@ import { keymap } from '@codemirror/view';
 import { defaultKeymap } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { Notice } from 'obsidian';
-import { transformMarkdownToLatex } from '@core/parser';
+import { parseLatexToObsidian } from '@core/parser';
 
 interface PreviewPanelProps {
   initialContent?: string;
@@ -91,7 +91,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
           if (update.docChanged) {
             const content = update.state.doc.toString();
             try {
-              const latex = transformMarkdownToLatex(content);
+              const latex = parseLatexToObsidian(content);
               setLatexOutput(latex);
               onContentChange?.(content);
               
