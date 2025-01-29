@@ -85,6 +85,26 @@ export class TheoremParser {
     }
 
     /**
+     * Process all theorem environments in the text
+     * @param text Text containing theorem environments
+     * @returns Processed text with theorems converted to callouts
+     */
+    processTheorems(text: string): string {
+        // Get all registered theorem environments
+        const envNames = [...this.state.environments.keys(), ...Object.keys(THEOREM_MAPPINGS)];
+        
+        let processedText = text;
+        for (const envName of envNames) {
+            const pattern = new RegExp(`\\\\begin{${envName}}([\\s\\S]*?)\\\\end{${envName}}`, 'g');
+            processedText = processedText.replace(pattern, (match, content) => {
+                return this.processTheorem(envName, content.trim());
+            });
+        }
+        
+        return processedText;
+    }
+
+    /**
      * Process alignat environment
      * @param content Environment content
      * @param starred Whether it's alignat* or not
