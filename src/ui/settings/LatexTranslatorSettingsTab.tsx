@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Notice, PluginSettingTab, Setting, TextAreaComponent } from 'obsidian';
+import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from 'obsidian';
 import LatexTranslatorPlugin from '../../main';
 import { LatexTranslatorSettings } from '../../core/settings/settings';
 import { logger } from '@utils/logger';
@@ -49,8 +49,8 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('right', 'Right')
                 .addOption('bottom', 'Bottom')
                 .setValue(this.plugin.settings.uiSettings.previewPanelPosition)
-                .onChange(async (value: 'right' | 'bottom') => {
-                    this.plugin.settings.uiSettings.previewPanelPosition = value;
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.previewPanelPosition = value as 'right' | 'bottom';
                     await this.plugin.saveSettings();
                 }));
 
@@ -117,8 +117,8 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('background', 'Background')
                 .addOption('gutter', 'Gutter Icon')
                 .setValue(this.plugin.settings.uiSettings.errorHighlightStyle)
-                .onChange(async (value: 'underline' | 'background' | 'gutter') => {
-                    this.plugin.settings.uiSettings.errorHighlightStyle = value;
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.errorHighlightStyle = value as 'underline' | 'background' | 'gutter';
                     await this.plugin.saveSettings();
                 }));
 
@@ -143,8 +143,8 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('detailed', 'Detailed')
                 .addOption('debug', 'Debug')
                 .setValue(this.plugin.settings.uiSettings.logDetailLevel)
-                .onChange(async (value: 'basic' | 'detailed' | 'debug') => {
-                    this.plugin.settings.uiSettings.logDetailLevel = value;
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.logDetailLevel = value as 'basic' | 'detailed' | 'debug';
                     await this.plugin.saveSettings();
                 }));
 
@@ -338,8 +338,8 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('placeholder', 'Use placeholders')
                 .addOption('autoNumber', 'Auto-number')
                 .setValue(this.settings.labelAndReference.referenceHandling)
-                .onChange(async (value: 'ignore' | 'placeholder' | 'autoNumber') => {
-                    this.settings.labelAndReference.referenceHandling = value;
+                .onChange(async (value) => {
+                    this.settings.labelAndReference.referenceHandling = value as 'ignore' | 'placeholder' | 'autoNumber';
                     await this.plugin.saveSettings();
                 }));
 
@@ -372,6 +372,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
     }
 
     private addCitationSettings(containerEl: HTMLElement): void {
+        // Define allowed placeholders for citation formats
+        const allowedPlaceholders = ['key', 'author', 'year', 'title'];
+
         containerEl.createEl('h3', { text: 'Citations' });
 
         new Setting(containerEl)
@@ -386,18 +389,18 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Default Citation Format')
-            .setDesc('Format for basic \\cite{} commands')
+            .setDesc('Format for basic \\cite{} commands. Available placeholders: $key, $author, $year, $title')
             .addText(text => text
                 .setPlaceholder('[cite: $key]')
                 .setValue(this.settings.citation.defaultFormat)
                 .onChange(async (value) => {
-                    this.settings.citation.defaultFormat = value;
+                    this.settings.citation.defaultFormat = validateAndSanitizeFormat(value, allowedPlaceholders);
                     await this.plugin.saveSettings();
                 }));
 
         new Setting(containerEl)
             .setName('Custom Citation Formats')
-            .setDesc('Add custom citation formats (one per line, format: command=template)')
+            .setDesc('Add custom citation formats (one per line, format: command=template). Available placeholders: $key, $author, $year, $title')
             .addTextArea(text => text
                 .setPlaceholder('citet=$author ($year)\ncitep=[$key]')
                 .setValue(Object.entries(this.settings.citation.customFormats)
@@ -408,13 +411,20 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                         value.split('\n').forEach(line => {
                             const [cmd, template] = line.trim().split('=');
                             if (cmd && template) {
-                                formats[cmd.trim()] = template.trim();
+                                const sanitizedCmd = cmd.trim();
+                                const sanitizedTemplate = validateAndSanitizeFormat(template.trim(), allowedPlaceholders);
+                                if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(sanitizedCmd)) {
+                                    formats[sanitizedCmd] = sanitizedTemplate;
+                                } else {
+                                    new Notice('Invalid citation command format');
+                                }
                             }
                         });
                         this.settings.citation.customFormats = formats;
                         await this.plugin.saveSettings();
                     } catch (error) {
                         logger.error('Error parsing custom citation formats', error);
+                        new Notice('Error saving citation formats');
                     }
                 }));
     }
@@ -645,7 +655,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
 
         fileInput.addEventListener('change', async () => {
             const file = fileInput.files?.[0];
-            if (!file) return;
+            if (!file) {
+              return;
+            }
 
             const reader = new FileReader();
             reader.onload = async (e) => {

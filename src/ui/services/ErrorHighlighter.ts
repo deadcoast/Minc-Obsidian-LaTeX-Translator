@@ -1,5 +1,7 @@
 import { Editor, EditorPosition } from 'obsidian';
 import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { Decoration, EditorView } from '@codemirror/view';
+import { StateEffect, RangeSet } from '@codemirror/state';
 
 interface ErrorRange {
     from: EditorPosition;
@@ -20,7 +22,9 @@ export class ErrorHighlighter {
     }
 
     highlight(errors: ErrorRange[]): void {
-        if (!this.settings.uiSettings.inlineErrorHighlighting) return;
+        if (!this.settings.uiSettings.inlineErrorHighlighting) {
+          return;
+        }
         this.clearHighlights();
 
         // Group errors if needed
@@ -78,7 +82,9 @@ export class ErrorHighlighter {
             const groups = new Map<string, ErrorRange[]>();
             errors.forEach(error => {
                 const key = error.message;
-                if (!groups.has(key)) groups.set(key, []);
+                if (!groups.has(key)) {
+                  groups.set(key, []);
+                }
                 groups.get(key)?.push(error);
             });
 
@@ -125,27 +131,37 @@ export class ErrorHighlighter {
     }
 
     private addUnderline(error: ErrorRange, className: string): void {
-        const marker = this.editor.markText(
-            error.from,
-            error.to,
-            {
-                className: `${className} latex-translator-error-underline`,
+        const range = {
+            from: this.editor.offsetToPos(this.editor.posToOffset(error.from)),
+            to: this.editor.offsetToPos(this.editor.posToOffset(error.to))
+        };
+        
+        const decoration = (this.editor as any).cm.decorateRange(range, {
+            attributes: {
+                class: `${className} latex-translator-error-underline`,
                 title: error.message
             }
-        );
-        this.markers.push(marker);
+        });
+        
+        // Store the decoration for later cleanup
+        this.markers.push(decoration);
     }
 
     private addBackground(error: ErrorRange, className: string): void {
-        const marker = this.editor.markText(
-            error.from,
-            error.to,
-            {
-                className: `${className} latex-translator-error-background`,
+        const range = {
+            from: this.editor.offsetToPos(this.editor.posToOffset(error.from)),
+            to: this.editor.offsetToPos(this.editor.posToOffset(error.to))
+        };
+        
+        const decoration = (this.editor as any).cm.decorateRange(range, {
+            attributes: {
+                class: `${className} latex-translator-error-background`,
                 title: error.message
             }
-        );
-        this.markers.push(marker);
+        });
+        
+        // Store the decoration for later cleanup
+        this.markers.push(decoration);
     }
 
     private addGutterMarker(error: ErrorRange): void {
@@ -154,8 +170,7 @@ export class ErrorHighlighter {
         marker.setAttribute('aria-label', error.message);
         marker.innerHTML = '⚠️';
 
-        // @ts-expect-error - CM6 API
-        const gutterMarker = this.editor.cm.setGutterMarker(
+        const gutterMarker = (this.editor as any).cm.setGutterMarker(
             error.from.line,
             'latex-translator-errors',
             marker
@@ -167,39 +182,56 @@ export class ErrorHighlighter {
     }
 
     private addSquiggly(error: ErrorRange, className: string): void {
-        const marker = this.editor.markText(
-            error.from,
-            error.to,
-            {
-                className: `${className} latex-translator-error-squiggly`,
-                title: error.message
-            }
-        );
-        this.markers.push(marker);
+        // @ts-expect-error: Using internal CM6 API
+        const view = this.editor.cm as any;
+        if (!view) {
+          return;
+        }
+
+        const decoration = view.state.field(view.state.field.decorations).update({
+            add: [{
+                from: view.posToOffset(error.from),
+                to: view.posToOffset(error.to),
+                value: view.Decoration.mark({ class: `${className} latex-translator-error-squiggly` })
+            }]
+        });
+        
+        view.dispatch(decoration);
+        this.markers.push(decoration);
     }
 
     private addBorder(error: ErrorRange, className: string): void {
-        const marker = this.editor.markText(
-            error.from,
-            error.to,
-            {
-                className: `${className} latex-translator-error-border`,
-                title: error.message
-            }
-        );
-        this.markers.push(marker);
+        const view = (this.editor as any).cm;
+        if (!view) {
+          return;
+        }
+
+        const decoration = Decoration.mark({
+            class: `${className} latex-translator-error-border`
+        }).range(view.state.doc.line(error.from.line + 1).from + error.from.ch,
+                 view.state.doc.line(error.to.line + 1).from + error.to.ch);
+
+        view.dispatch({
+            effects: StateEffect.appendConfig.of([EditorView.decorations.of(RangeSet.of([decoration]))])
+        });
+        this.markers.push(decoration);
     }
 
     private addSideBorder(error: ErrorRange, className: string): void {
-        const marker = this.editor.markText(
-            error.from,
-            error.to,
-            {
-                className: `${className} latex-translator-error-side-border`,
-                title: error.message
-            }
-        );
-        this.markers.push(marker);
+        const view = (this.editor as any).cm;
+        if (!view) {
+            return;
+        }
+
+        const decoration = Decoration.mark({
+            class: `${className} latex-translator-error-side-border`
+        }).range(view.state.doc.line(error.from.line + 1).from + error.from.ch,
+                 view.state.doc.line(error.to.line + 1).from + error.to.ch);
+
+        view.dispatch({
+            effects: StateEffect.appendConfig.of([EditorView.decorations.of(RangeSet.of([decoration]))])
+        });
+        this.markers.push(decoration);
     }
 
     clearHighlights(): void {

@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { createRoot, Root } from 'react-dom/client';
 import * as React from 'react';
-import { ReactView } from './ReactView';
+import ReactView from './ReactView';
 import { LATEX_VIEW_TYPE } from '../../main';
 import type MincLatexTranslatorPlugin from '../../main';
 

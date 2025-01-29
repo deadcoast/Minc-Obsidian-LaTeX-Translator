@@ -10,6 +10,7 @@ import { StatisticsView } from './ui/views/StatisticsView';
 import { KeyboardShortcutsModal } from './ui/modals/KeyboardShortcutsModal';
 
 const STATISTICS_VIEW_TYPE = 'latex-translator-statistics-view';
+export const LATEX_VIEW_TYPE = 'latex-translator-view';
 
 export default class LatexTranslatorPlugin extends Plugin {
     settings: LatexTranslatorSettings;

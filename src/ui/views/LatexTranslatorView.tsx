@@ -2,9 +2,9 @@ import React from 'react';
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import styled from 'styled-components';
-import { PreviewPanel } from '@views/index';
-import { AppProvider } from '@components/index';
-import { TransformationControls } from '@components/index';
+import { PreviewPanel } from './PanelView';
+import { AppProvider } from '@components/AppContext';
+import { TransformationControls } from '@components/TransformationControls';
 import { ParserOptions } from '@core/parser';
 
 export const LATEX_VIEW_TYPE = 'latex-translator-view';
