@@ -37,387 +37,361 @@ export interface ParserOptions {
 }
 
 /*******************************************************
- * NESTED ENVIRONMENTS PARSER HELPERS
+ * ENVIRONMENT CONVERSION HELPERS
  *******************************************************/
-function replaceNestedEnvironments(text: string, envPattern: string): string {
-  /**
-	 * This function handles truly nested environments, e.g.:
-	 *   \begin{envA}
-	 *     text...
-	 *     \begin{envB}
-	 *       more text...
-	 *     \end{envB}
-	 *   \end{envA}
-	 *
-	 * We track a stack of environment names. Once we pop back to
-	 * an empty stack, we know we've closed an entire environment block.
-	 * Then we wrap that entire chunk in `$$ ... $$`.
-	 */
+function convertEnvironmentToDisplay(env: string, content: string, options: ParserOptions): string {
+    try {
+        const targetEnv = ENVIRONMENT_MAPPINGS[env] || env;
+        if (!ENVIRONMENT_MAPPINGS[env]) {
+            logger.warning(ERROR_MESSAGES.UNKNOWN_ENVIRONMENT(env));
+        }
 
-  const envRegex = new RegExp(`\\\\(begin|end)\\{(${envPattern})\\}`, 'g');
-  const stack: string[] = [];
-  let lastIndex = 0;
-  let result = '';
+        let processedContent = content.trim();
 
-  let match;
-  while ((match = envRegex.exec(text)) !== null) {
-    const [full, type, name] = match;
-    if (type === 'begin') {
-  			// Pushing environment name onto the stack
-  			stack.push(name);
-  		}
-    else if (stack.length === 0 || stack.pop() !== name) {
-  				// Mismatched \end, skip or handle error
-  				continue;
-  			}
+        // Handle labels if present
+        if (options.removeLabels) {
+            processedContent = processedContent.replace(/\\label\{([^}]*)\}/g, (_, label) => {
+                if (!/^[a-zA-Z0-9:_-]+$/.test(label)) {
+                    logger.warning(ERROR_MESSAGES.LABEL_ERROR(label));
+                }
+                return '';
+            });
+        }
 
-    // Once the stack is empty, we've closed a top-level environment
-    if (stack.length === 0) {
-      // Take everything from lastIndex up to the \begin
-      result += text.slice(lastIndex, match.index);
-
-      // Now convert that environment block content
-      // `text.slice(lastIndex, match.index)` is everything
-      // from the previous environment boundary up until
-      // this new \begin or \end. We pass it to `convertEnvironment`.
-      result += convertEnvironment(
-        full,
-        text.slice(lastIndex, match.index)
-      );
-
-      // Move lastIndex forward
-      lastIndex = envRegex.lastIndex;
+        // Convert to Obsidian display math format
+        return `$$ \\begin{${targetEnv}}\n${processedContent}\n\\end{${targetEnv}} $$`;
+    } catch (error) {
+        logger.error('Error in environment conversion', error);
+        return content; // Return original content on error
     }
-  }
-  // Append any remaining text after the final environment
-  result += text.slice(lastIndex);
-  return result;
-}
-
-function convertEnvironment(_match: string, content: string): string {
-  /**
-	 * Called whenever we've closed out a top-level environment.
-	 * We simply wrap the environment's content in $$ ... $$.
-	 */
-  return `$$\n${content.trim()}\n$$`;
 }
 
 /*******************************************************
- * MACRO REMOVAL HELPER
+ * BRACKET REPLACEMENT HELPERS
  *******************************************************/
-function removeMacros(text: string): string {
-  /**
-	 * A simpler fallback approach to removing lines with
-	 * \newcommand or \renewcommand. If you do not want expansions,
-	 * call this to strip them out entirely.
-	 */
-  let inMacro = false;
-  let braceDepth = 0;
-  let result = '';
+function replaceMathDelimiters(text: string): string {
+    try {
+        let processedText = text;
 
-  for (let i = 0; i < text.length; i++) {
-    // Example simplistic detection of \newcommand or \renewcommand
-    if (!inMacro && text.substr(i, 12).match(/\\(new|renew)command/)) {
-      inMacro = true;
-      // Skip ahead over "\newcommand" or "\renewcommand"
-      // This is simplistic and may need to handle multiline, etc.
-      if (text.substr(i, 5) === '\\newc') {
-        i += 10; // skip "\newcommand"
-      } else {
-        i += 12; // skip "\renewcommand"
-      }
-      continue;
+        // Handle display math delimiters
+        MATH_DELIMITERS.DISPLAY.forEach(([pattern, replacement]) => {
+            processedText = processedText.replace(pattern, replacement as string);
+        });
+
+        // Handle inline math delimiters
+        MATH_DELIMITERS.INLINE.forEach(([pattern, replacement]) => {
+            processedText = processedText.replace(pattern, replacement as string);
+        });
+
+        return processedText;
+    } catch (error) {
+        logger.error('Error replacing math delimiters', error);
+        return text;
     }
+}
 
-    if (inMacro) {
-      if (text[i] === '{') {
-        braceDepth++;
-      }
-      if (text[i] === '}') {
-        braceDepth--;
-        if (braceDepth === 0) {
-          inMacro = false;
+/*******************************************************
+ * LABEL AND REFERENCE HANDLING
+ *******************************************************/
+function handleLabelsAndRefs(text: string, options: ParserOptions): string {
+    try {
+        let processedText = text;
+        const labels = new Map<string, { number: number; type?: string; name?: string }>();
+        let counters = {
+            equation: 1,
+            section: 1,
+            figure: 1,
+            table: 1
+        };
+
+        if (options.handleRefs === 'autoNumber') {
+            // First pass: collect all labels and their context
+            const labelRegex = /\\label\{([^}]*)\}/g;
+            let match;
+            while ((match = labelRegex.exec(text)) !== null) {
+                const label = match[1];
+                const context = text.slice(Math.max(0, match.index - 50), match.index);
+                const type = context.match(/\\begin\{(equation|figure|table|section)\*?\}/)?.[1] || 'equation';
+                const name = context.match(/\\(section|subsection|chapter)\{([^}]*)\}/)?.[2];
+                
+                labels.set(label, {
+                    number: counters[type as keyof typeof counters]++,
+                    type,
+                    name
+                });
+            }
+
+            // Second pass: replace references with appropriate format
+            const refReplacements: [RegExp, (label: string) => string][] = [
+                // Basic references
+                [/\\ref\{([^}]*)\}/g, label => {
+                    const info = labels.get(label);
+                    return info ? REFERENCE_FORMATS.CUSTOM.ref.replace('$label', label) : '(?)';
+                }],
+                // Equation references
+                [/\\eqref\{([^}]*)\}/g, label => {
+                    const info = labels.get(label);
+                    return info ? REFERENCE_FORMATS.CUSTOM.eqref.replace('$number', info.number.toString()) : '(?)';
+                }],
+                // Page references
+                [/\\pageref\{([^}]*)\}/g, label => {
+                    return REFERENCE_FORMATS.CUSTOM.pageref.replace('$number', '?');
+                }],
+                // Name references
+                [/\\nameref\{([^}]*)\}/g, label => {
+                    const info = labels.get(label);
+                    return info?.name ? REFERENCE_FORMATS.CUSTOM.nameref.replace('$name', info.name) : '(?)';
+                }],
+                // Auto references
+                [/\\autoref\{([^}]*)\}/g, label => {
+                    const info = labels.get(label);
+                    return info ? REFERENCE_FORMATS.CUSTOM.autoref
+                        .replace('$type', info.type)
+                        .replace('$number', info.number.toString()) : '(?)';
+                }],
+                // Visual references
+                [/\\vref\{([^}]*)\}/g, label => {
+                    const info = labels.get(label);
+                    return info ? REFERENCE_FORMATS.CUSTOM.vref
+                        .replace('$type', info.type)
+                        .replace('$number', info.number.toString())
+                        .replace('$page', '?') : '(?)';
+                }]
+            ];
+
+            refReplacements.forEach(([pattern, replacer]) => {
+                processedText = processedText.replace(pattern, (_, label) => replacer(label));
+            });
+        } else if (options.handleRefs === 'placeholder') {
+            processedText = processedText.replace(/\\(?:eq|page|name|auto|v)?ref\{([^}]*)\}/g, (match, label) => {
+                const refType = match.startsWith('\\eqref') ? 'EQUATION' :
+                              match.startsWith('\\pageref') ? 'PAGE' :
+                              match.startsWith('\\nameref') ? 'NAME' :
+                              'DEFAULT';
+                return REFERENCE_FORMATS[refType].replace(/\$(?:label|number|name)/, label);
+            });
         }
-      }
-      continue;
-    }
 
-    result += text[i];
-  }
-  return result;
+        // Remove labels if specified
+        if (options.removeLabels) {
+            processedText = processedText.replace(/\\label\{[^}]*\}/g, '');
+        }
+
+        return processedText;
+    } catch (error) {
+        logger.error('Error handling labels and references', error);
+        return text;
+    }
+}
+
+/*******************************************************
+ * MACRO EXPANSION
+ *******************************************************/
+function expandMacros(text: string): string {
+    try {
+        let processedText = text;
+        const customMacros = new Map<string, { replacement: string; args: number }>();
+        
+        // First handle custom macro definitions
+        processedText = processedText.replace(
+            /\\(?:re)?newcommand\{\\([^}]+)\}(?:\[(\d+)\])?\{([^}]+)\}/g,
+            (_, name, argsStr, replacement) => {
+                if (!/^[a-zA-Z]+$/.test(name)) {
+                    logger.warning(ERROR_MESSAGES.INVALID_MACRO(name));
+                    return _;
+                }
+                const args = argsStr ? parseInt(argsStr, 10) : 0;
+                customMacros.set(name, { replacement, args });
+                return '';
+            }
+        );
+
+        // Apply custom macros
+        customMacros.forEach(({ replacement, args }, name) => {
+            const macroRegex = new RegExp(
+                `\\\\${name}((?:\\{[^}]*\\}){0,${args}})`,
+                'g'
+            );
+            processedText = processedText.replace(macroRegex, (_, argStr) => {
+                const argMatches = argStr.match(/\{([^}]*)\}/g) || [];
+                if (argMatches.length !== args) {
+                    logger.warning(
+                        ERROR_MESSAGES.MACRO_ARG_MISMATCH(name, args, argMatches.length)
+                    );
+                }
+                let result = replacement;
+                argMatches.forEach((arg, i) => {
+                    const argContent = arg.slice(1, -1);
+                    result = result.replace(
+                        new RegExp(`#${i + 1}(?!\\d)`, 'g'),
+                        argContent
+                    );
+                });
+                return result;
+            });
+        });
+
+        // Apply common predefined macros
+        Object.entries(COMMON_MACROS).forEach(([macro, replacement]) => {
+            const macroRegex = new RegExp(macro.replace(/\\/g, '\\\\') + '(?![a-zA-Z])', 'g');
+            processedText = processedText.replace(macroRegex, replacement);
+        });
+
+        return processedText;
+    } catch (error) {
+        logger.error('Error expanding macros', error);
+        return text; // Return original text on error
+    }
+}
+
+/*******************************************************
+ * CITATION HANDLING
+ *******************************************************/
+function convertCitations(text: string): string {
+    try {
+        const citationReplacements: [RegExp, string][] = [
+            // Standard citations
+            [/\\cite\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.cite],
+            [/\\citep\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.citep],
+            [/\\citet\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.citet],
+            // Author-specific citations
+            [/\\citeauthor\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.citeauthor],
+            [/\\citeyear\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.citeyear],
+            [/\\citetitle\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.citetitle],
+            // Full citations
+            [/\\fullcite\{([^}]+)\}/g, CITATION_FORMATS.CUSTOM.fullcite]
+        ];
+
+        return citationReplacements.reduce((acc, [pattern, format]) => {
+            return acc.replace(pattern, (_, keys) => {
+                const citations = keys.split(',').map(key => {
+                    const trimmedKey = key.trim();
+                    if (!/^[a-zA-Z0-9_:-]+$/.test(trimmedKey)) {
+                        logger.warning(ERROR_MESSAGES.CITATION_ERROR(trimmedKey));
+                    }
+                    // Replace placeholders with actual values (in a real implementation,
+                    // these would come from a bibliography database)
+                    return format
+                        .replace('$key', trimmedKey)
+                        .replace('$author', 'Author')
+                        .replace('$year', '20XX')
+                        .replace('$title', 'Title');
+                });
+                return citations.join(', ');
+            });
+        }, text);
+    } catch (error) {
+        logger.error('Error converting citations', error);
+        return text;
+    }
+}
+
+/*******************************************************
+ * NESTED ENVIRONMENTS PARSER HELPERS
+ *******************************************************/
+function replaceNestedEnvironments(text: string, envPattern: string): string {
+    try {
+        const envStack: string[] = [];
+        const result = text.replace(
+            new RegExp(`\\\\(begin|end)\\{(${envPattern})\\}`, 'g'),
+            (match, command, env) => {
+                if (command === 'begin') {
+                    // Check nesting validity
+                    if (envStack.length > 0) {
+                        const outerEnv = envStack[envStack.length - 1];
+                        if (VALID_NESTING[outerEnv] && !VALID_NESTING[outerEnv].includes(env)) {
+                            logger.warning(ERROR_MESSAGES.NESTED_ERROR(outerEnv, env));
+                        }
+                    }
+                    envStack.push(env);
+                } else {
+                    const lastEnv = envStack.pop();
+                    if (lastEnv !== env) {
+                        logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
+                        // Try to recover by assuming the environment is closed
+                        return `\\end{${env}}`;
+                    }
+                }
+                return match;
+            }
+        );
+
+        // Check for unclosed environments
+        if (envStack.length > 0) {
+            envStack.forEach(env => {
+                logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
+            });
+        }
+
+        return result;
+    } catch (error) {
+        logger.error('Error processing nested environments', error);
+        return text; // Return original text on error
+    }
 }
 
 /*******************************************************
  * MAIN PARSER FUNCTION
  *******************************************************/
 export function parseLatexToObsidian(text: string, options: ParserOptions = {}): string {
-  const {
-    convertEnvironments = true,
-    extraEnvironments = [],
-    convertEqnarray = false,
-    removeLabels = false,
-    handleRefs = 'ignore',
-    expandMacros = false,
-    convertCitations = false,
-    removeLeftRight = false,
-    unifyTextToMathrm = false,
-  } = options;
+    try {
+        // Set default options
+        const defaultOptions: Required<ParserOptions> = {
+            convertEnvironments: true,
+            extraEnvironments: [],
+            convertEqnarray: true,
+            removeLabels: false,
+            handleRefs: 'placeholder',
+            expandMacros: true,
+            convertCitations: true,
+            removeLeftRight: true,
+            unifyTextToMathrm: true
+        };
 
-  /*******************************************************
-	 * STEP 1) BRACKET HANDLING WITH CONTEXT AWARENESS
-	 *    - Convert \(...\)  ->  $(...)$
-	 *    - Convert \[...\] ->  $$[...]$$
-	 *    - Also handle \begin{equation}, etc., into $$ if encountered.
-	 *******************************************************/
+        const finalOptions = { ...defaultOptions, ...options };
+        let processedText = text;
 
-  // We keep a stack for inline/display contexts:
-  let mathModeStack: ('inline' | 'display')[] = [];
-
-  text = text.replace(
-    /\\([()[\]]|begin\{equation\*?}|end\{equation\*?}|begin\{align\*?}|end\{align\*?})/g,
-    (match: string, command: string): string => {
-      switch (command) {
-      case '(':
-        mathModeStack.push('inline');
-        return '$(';
-
-      case ')':
-        if (mathModeStack.pop() !== 'inline') {
-          console.warn('Mismatched inline math closure');
+        // Step 1: Expand macros if enabled
+        if (finalOptions.expandMacros) {
+            processedText = expandMacros(processedText);
         }
-        return ')$';
 
-      case '[':
-        mathModeStack.push('display');
-        return '$$[';
-
-      case ']':
-        if (mathModeStack.pop() !== 'display') {
-          console.warn('Mismatched display math closure');
+        // Step 2: Handle environments
+        if (finalOptions.convertEnvironments) {
+            const envPattern = Object.keys(ENVIRONMENT_MAPPINGS)
+                .concat(finalOptions.extraEnvironments)
+                .join('|');
+            
+            processedText = replaceNestedEnvironments(processedText, envPattern);
         }
-        return ']$$';
 
-      case 'begin{equation}':
-      case 'begin{equation*}':
-      case 'begin{align}':
-      case 'begin{align*}':
-        mathModeStack.push('display');
-        return '$$';
+        // Step 3: Handle labels and references
+        processedText = handleLabelsAndRefs(processedText, finalOptions);
 
-      case 'end{equation}':
-      case 'end{equation*}':
-      case 'end{align}':
-      case 'end{align*}':
-        if (mathModeStack.pop() !== 'display') {
-          console.warn('Mismatched environment closure');
+        // Step 4: Convert citations if enabled
+        if (finalOptions.convertCitations) {
+            processedText = convertCitations(processedText);
         }
-        return '$$';
 
-      default:
-        return match;
-      }
-    }
-  );
+        // Step 5: Replace math delimiters
+        processedText = replaceMathDelimiters(processedText);
 
-  // Reset the stack after bracket handling
-  mathModeStack = [];
-
-  // Standard post-processing for matched pairs
-  text = text.replace(/(\$\$?)([^$]*?)(\$\$?)/g, (fullMatch, open, content, close) => {
-    // Check for consistent delimiter pairing
-    if ((open === '$(' && close !== ')$') || (open === '$$[' && close !== ']$$')) {
-      console.warn(`Mismatched math delimiters: ${open} ... ${close}`);
-      return fullMatch;
-    }
-
-    // Determine if it's display or inline
-    const isDisplayMath = (open === '$$[' || open === '$$');
-    const cleanContent = content
-      .replace(/^\n+/, '')     // remove leading newlines
-      .replace(/\n+$/, '')     // remove trailing newlines
-      .replace(/\n{2,}/g, '\n'); // collapse multiple newlines
-
-    return isDisplayMath
-      ? `$$\n${cleanContent}\n$$`
-      : `$${cleanContent}$`;
-  });
-
-  // Handle edge cases with escaped brackets (e.g., `\\[`)
-  text = text.replace(/(\\\\)*\\[()[\]]/g, (match) => {
-    // If there's an odd number of backslashes, strip one:
-    const escapeCount = (match.match(/\\/g) || []).length;
-    if (escapeCount % 2 === 1) {
-      // Remove just one backslash so it remains properly escaped for Obsidian
-      return match.slice(1);
-    }
-    return match;
-  });
-
-  /*******************************************************
-	 * STEP 2) ENVIRONMENT DETECTION & CONVERSION
-	 *    - By default handles: equation, align, align*, cases
-	 *    - Additional: user-provided extraEnvironments
-	 *    - Optionally: eqnarray
-	 *    - NESTED approach + single-pass fallback
-	 *******************************************************/
-  if (convertEnvironments) {
-    const defaultEnvs = ['equation', 'align', 'align*', 'cases'];
-    const allEnvs = defaultEnvs.concat(extraEnvironments);
-    if (convertEqnarray) {
-      allEnvs.push('eqnarray');
-    }
-
-    if (allEnvs.length > 0) {
-      // 1) Perform truly nested environment replacement
-      const nestedPattern = allEnvs.map(env => env.replace('*', '\\*')).join('|');
-      text = replaceNestedEnvironments(text, nestedPattern);
-
-      // 2) As a fallback, also do single-pass environment replacement
-      const envRegex = new RegExp(
-        `\\\\begin\\{(${nestedPattern})\}([\\s\\S]*?)\\\\end\\{\\1\\}`,
-        'g'
-      );
-      text = text.replace(envRegex, (_match, _envName, content) => {
-        // Convert entire environment to $$ ... $$
-        return `$$\n${content.trim()}\n$$`;
-      });
-    }
-  }
-
-  /*******************************************************
-	 * STEP 3) MACRO EXPANSIONS OR REMOVAL
-	 *******************************************************/
-  if (expandMacros) {
-		/*******************************************************
-		 * 3A) COLLECT AND STORE MACRO DEFINITIONS
-		 *******************************************************/
-		type MacroDefinition = {
-			expansion: string;
-			args: number;
-		};
-		const macroMap = new Map<string, MacroDefinition>();
-
-		// Phase 1: Collect macro definitions
-		text = text.replace(
-		  /\\(?:new|renew)command\\([a-zA-Z]+)(?:\[([0-9]+)])?\{((?:[^{}]|(\{[^{}]*}))*)}/g,
-		  (match, name: string, argCount: string, expansion: string) => {
-		    const args = argCount ? parseInt(argCount, 10) : 0;
-		    if (!/^[a-zA-Z]+$/.test(name)) {
-		      // Invalid macro name, leave it untouched
-		      return match;
-		    }
-		    macroMap.set(name, {
-		      expansion: expansion.trim(),
-		      args
-		    });
-		    return ''; // remove definition from the text
-		  }
-		);
-
-		/*******************************************************
-		 * 3B) EXPAND MACROS
-		 *******************************************************/
-		// Sort macros by descending name length to avoid partial matches
-		const sortedMacros = Array.from(macroMap.entries())
-		  .sort(([a], [b]) => b.length - a.length);
-
-		for (const [name, { expansion, args }] of sortedMacros) {
-		  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		  const argPattern = Array.from({ length: args }, () => '\\{([^}]*)\\}').join('');
-		  const macroRegex = new RegExp(`(?<!\\\\)\\\\${escapedName}(?:${argPattern})`, 'g');
-
-		  text = text.replace(macroRegex, (_fullMatch, ...captures) => {
-		    const callArgs = captures.slice(0, args);
-		    let result = expansion;
-		    callArgs.forEach((argVal, idx) => {
-		      const placeholderRegex = new RegExp(`#${idx + 1}(?!\\d)`, 'g');
-		      result = result.replace(placeholderRegex, argVal || '');
-		    });
-		    return result;
-		  });
-		}
-
-		// Clean up leftover #n if expansions were incomplete
-		text = text.replace(/#[0-9]+/g, '');
-  } else {
-    /*******************************************************
-		 * 3C) REMOVE MACRO DEFINITIONS IF NOT EXPANDING
-		 *******************************************************/
-    text = text.replace(
-      /\\(?:new|renew)command\\[a-zA-Z]+(?:\[[0-9]+])?\{(?:[^{}]|\{[^{}]*})*}/g,
-      ''
-    );
-    // Also call your removal helper if you want a second pass:
-    text = removeMacros(text);
-  }
-
-  /*******************************************************
-	 * STEP 4) REFERENCE & LABEL HANDLING
-	 *    - removeLabels?
-	 *    - handleRefs? ('ignore', 'placeholder', 'autoNumber')
-	 *******************************************************/
-  if (handleRefs === 'autoNumber') {
-    // (a) Find all labels in $$ blocks and assign numbers
-    let eqCounter = 1;
-    const labelMap = new Map<string, number>();
-
-    text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_fullMatch: string, inner: string) => {
-      const cleanedInner = inner.replace(/\\label\{([^}]+)}/g, (_m, labelName: string) => {
-        if (labelMap.has(labelName)) {
-          console.warn(`Duplicate label detected: ${labelName}`);
+        // Step 6: Clean up \left and \right if enabled
+        if (finalOptions.removeLeftRight) {
+            processedText = processedText.replace(/\\left\s*([({[])/g, '$1')
+                .replace(/\\right\s*([)}\]])/g, '$1');
         }
-        labelMap.set(labelName, eqCounter++);
-        return ''; // remove the label from output
-      });
-      return `$$${cleanedInner}$$`;
-    });
 
-    // (b) Replace \ref{} or \eqref{} with (eq#)
-    text = text.replace(/\\(?:ref|eqref)\{([^}]+)}/g, (_m, labelName) => {
-      const eqNum = labelMap.get(labelName);
-      return eqNum ? `(${eqNum})` : '(??)';
-    });
-  } else if (handleRefs === 'placeholder') {
-    // e.g.  \ref{xyz} -> (ref: xyz)
-    text = text.replace(/\\(?:ref|eqref)\{([^}]+)}/g, '(ref: $1)');
-  }
-  // if 'ignore', leave them as-is
+        // Step 7: Convert \text to \mathrm if enabled
+        if (finalOptions.unifyTextToMathrm) {
+            processedText = processedText.replace(/\\text\{([^}]*)\}/g, '\\mathrm{$1}');
+        }
 
-  // Finally, remove or convert \label if requested
-  if (removeLabels) {
-    // Remove \label entirely
-    text = text.replace(/\\label\{[^}]+}/g, '');
-  } else {
-    // Convert \label{xyz} -> [label: xyz]
-    text = text.replace(/\\label\{([^}]+)}/g, '[label: $1]');
-  }
-
-  /*******************************************************
-	 * STEP 5) CONVERT CITATIONS
-	 *    - e.g. \cite{XYZ} -> [cite: XYZ]
-	 *******************************************************/
-  if (convertCitations) {
-    text = text.replace(/\\cite\{([^}]+)}/g, '[cite: $1]');
-    // Additional patterns like \parencite could be added similarly
-  }
-
-  /*******************************************************
-	 * STEP 6) REMOVE \left and \right if requested
-	 *******************************************************/
-  if (removeLeftRight) {
-    text = text.replace(/\\left\s*([({\[])/g, '$1');
-    text = text.replace(/\\right\s*([)}\]])/g, '$1');
-  }
-
-  /*******************************************************
-	 * STEP 7) CONVERT \text{xyz} TO \mathrm{xyz} IF REQUESTED
-	 *******************************************************/
-  if (unifyTextToMathrm) {
-    text = text.replace(/\\text\{([^}]+)}/g, '\\mathrm{$1}');
-  }
-
-  /*******************************************************
-	 * RETURN FINAL
-	 *******************************************************/
-  return text;
+        return processedText;
+    } catch (error) {
+        logger.error('Error in LaTeX parser', error);
+        return text; // Return original text on critical error
+    }
 }
+
+export default parseLatexToObsidian;

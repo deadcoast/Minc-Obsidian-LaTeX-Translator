@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Editor, Notice, View } from 'obsidian';
+import { Plugin, WorkspaceLeaf, Editor, Notice, View, ItemView, addIcon } from 'obsidian';
 import { LatexView, LATEX_VIEW_TYPE } from '@views/LatexView';
 import { MincLatexSettings, DEFAULT_SETTINGS, MincLatexSettingTab } from '@core/settings';
 import { parseLatexToObsidian } from '@core/parser/latexParser';
@@ -83,7 +83,8 @@ export class MincLatexTranslatorPlugin extends Plugin {
 		);
 
 		// Add ribbon icon for LaTeX Translator
-		const ribbonIcon = this.addRibbonIcon('function', 'M|inc LaTeX Translator', () => {
+		addIcon('latex-translator', `<svg>...</svg>`); // Add your icon SVG here
+		const ribbonIcon = this.addRibbonIcon('latex-translator', 'M|inc LaTeX Translator', () => {
 			this.activateView();
 		});
 		ribbonIcon.addClass('minc-latex-translator-ribbon-icon');
@@ -209,6 +210,9 @@ export class MincLatexTranslatorPlugin extends Plugin {
 
 			// Create new leaf and view
 			const leaf = this.app.workspace.getRightLeaf(false);
+			if (!leaf) {
+				throw new Error('Could not create sidebar leaf');
+			}
 			await leaf.setViewState({ type: LATEX_VIEW_TYPE });
 			this.app.workspace.revealLeaf(leaf);
 		} catch (error) {

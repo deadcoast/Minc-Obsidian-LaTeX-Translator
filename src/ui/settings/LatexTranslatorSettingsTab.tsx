@@ -1,0 +1,577 @@
+import { App, ButtonComponent, Notice, PluginSettingTab, Setting, TextAreaComponent } from 'obsidian';
+import LatexTranslatorPlugin from '../../main';
+import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { logger } from '@utils/logger';
+import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../core/settings/settingsValidation';
+
+export class LatexTranslatorSettingsTab extends PluginSettingTab {
+    plugin: LatexTranslatorPlugin;
+    settings: LatexTranslatorSettings;
+
+    constructor(app: App, plugin: LatexTranslatorPlugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+        this.settings = plugin.settings;
+    }
+
+    display(): void {
+        const { containerEl } = this;
+        containerEl.empty();
+
+        containerEl.createEl('h2', { text: 'LaTeX Translator Settings' });
+
+        this.addEnvironmentSettings(containerEl);
+        this.addBracketSettings(containerEl);
+        this.addLabelSettings(containerEl);
+        this.addCitationSettings(containerEl);
+        this.addAdvancedSettings(containerEl);
+        this.addImportExportSettings(containerEl);
+
+        // UI Settings
+        containerEl.createEl('h2', { text: 'UI Settings' });
+
+        // Preview Panel Settings
+        new Setting(containerEl)
+            .setName('Enable Preview Panel')
+            .setDesc('Show a real-time preview panel when converting LaTeX')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.enablePreviewPanel)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.enablePreviewPanel = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Preview Panel Position')
+            .setDesc('Choose where to display the preview panel')
+            .addDropdown(dropdown => dropdown
+                .addOption('right', 'Right')
+                .addOption('bottom', 'Bottom')
+                .setValue(this.plugin.settings.uiSettings.previewPanelPosition)
+                .onChange(async (value: 'right' | 'bottom') => {
+                    this.plugin.settings.uiSettings.previewPanelPosition = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Auto-Update Preview')
+            .setDesc('Automatically update the preview as you type')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.autoUpdatePreview)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.autoUpdatePreview = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Preview Delay')
+            .setDesc('Delay in milliseconds before updating the preview (when auto-update is enabled)')
+            .addSlider(slider => slider
+                .setLimits(100, 2000, 100)
+                .setValue(this.plugin.settings.uiSettings.previewDelay)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.previewDelay = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Error and Warning Display
+        containerEl.createEl('h3', { text: 'Error & Warning Display' });
+
+        new Setting(containerEl)
+            .setName('Show Error Notifications')
+            .setDesc('Display error notifications when conversion fails')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showErrorNotifications)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showErrorNotifications = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Show Warning Notifications')
+            .setDesc('Display warning notifications for potential issues')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showWarningNotifications)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showWarningNotifications = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Inline Error Highlighting')
+            .setDesc('Highlight errors directly in the editor')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.inlineErrorHighlighting)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.inlineErrorHighlighting = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Error Highlight Style')
+            .setDesc('Choose how to highlight errors in the editor')
+            .addDropdown(dropdown => dropdown
+                .addOption('underline', 'Underline')
+                .addOption('background', 'Background')
+                .addOption('gutter', 'Gutter Icon')
+                .setValue(this.plugin.settings.uiSettings.errorHighlightStyle)
+                .onChange(async (value: 'underline' | 'background' | 'gutter') => {
+                    this.plugin.settings.uiSettings.errorHighlightStyle = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Conversion Logs
+        containerEl.createEl('h3', { text: 'Conversion Logs' });
+
+        new Setting(containerEl)
+            .setName('Show Conversion Logs')
+            .setDesc('Display a panel with conversion logs and errors')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showConversionLogs)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showConversionLogs = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Log Detail Level')
+            .setDesc('Choose how much information to include in logs')
+            .addDropdown(dropdown => dropdown
+                .addOption('basic', 'Basic')
+                .addOption('detailed', 'Detailed')
+                .addOption('debug', 'Debug')
+                .setValue(this.plugin.settings.uiSettings.logDetailLevel)
+                .onChange(async (value: 'basic' | 'detailed' | 'debug') => {
+                    this.plugin.settings.uiSettings.logDetailLevel = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Maximum Log Entries')
+            .setDesc('Maximum number of log entries to keep')
+            .addSlider(slider => slider
+                .setLimits(50, 500, 50)
+                .setValue(this.plugin.settings.uiSettings.maxLogEntries)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.maxLogEntries = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Auto-Expand Log Entries')
+            .setDesc('Automatically expand detailed log entries')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.autoExpandLogEntries)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.autoExpandLogEntries = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Progress Indicators
+        containerEl.createEl('h3', { text: 'Progress Indicators' });
+
+        new Setting(containerEl)
+            .setName('Show Progress Bar')
+            .setDesc('Display a progress bar for batch operations')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showProgressBar)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showProgressBar = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Show Status Bar Info')
+            .setDesc('Display conversion information in the status bar')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showStatusBarInfo)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showStatusBarInfo = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Show Command Count')
+            .setDesc('Display command count in the status bar')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.uiSettings.showCommandCount)
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.showCommandCount = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Minimum Batch Size')
+            .setDesc('Minimum number of operations to show progress bar')
+            .addSlider(slider => slider
+                .setLimits(5, 50, 5)
+                .setValue(this.plugin.settings.uiSettings.minimumBatchSize)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.uiSettings.minimumBatchSize = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private addEnvironmentSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Environment Conversion' });
+
+        new Setting(containerEl)
+            .setName('Enable Environment Conversion')
+            .setDesc('Convert LaTeX environments to their Obsidian equivalents')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.environmentConversion.enabled)
+                .onChange(async (value) => {
+                    this.settings.environmentConversion.enabled = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Preserve Unknown Environments')
+            .setDesc('Keep original environment names when no mapping exists')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.environmentConversion.preserveOriginalOnUnknown)
+                .onChange(async (value) => {
+                    this.settings.environmentConversion.preserveOriginalOnUnknown = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Custom Environment Mappings')
+            .setDesc('Add custom environment mappings (one per line, format: source=target)')
+            .addTextArea(text => {
+                text.setPlaceholder('theorem=callout-theorem\nproof=callout-proof')
+                    .setValue(Object.entries(this.settings.environmentConversion.customMappings)
+                        .map(([k, v]) => `${k}=${v}`).join('\n'))
+                    .onChange(async (value) => {
+                        try {
+                            const mappings: Record<string, string> = {};
+                            value.split('\n').forEach(line => {
+                                const [source, target] = line.trim().split('=');
+                                if (source && target) {
+                                    const sanitizedSource = source.trim();
+                                    const sanitizedTarget = target.trim();
+                                    if (/^[a-zA-Z][a-zA-Z0-9*]*$/.test(sanitizedSource) &&
+                                        /^[a-zA-Z][a-zA-Z0-9-]*$/.test(sanitizedTarget)) {
+                                        mappings[sanitizedSource] = sanitizedTarget;
+                                    } else {
+                                        new Notice('Invalid environment name format');
+                                    }
+                                }
+                            });
+                            this.settings.environmentConversion.customMappings = mappings;
+                            await this.plugin.saveSettings();
+                        } catch (error) {
+                            logger.error('Error parsing custom environment mappings', error);
+                            new Notice('Error saving environment mappings');
+                        }
+                    });
+                return text;
+            });
+    }
+
+    private addBracketSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Math Mode & Brackets' });
+
+        new Setting(containerEl)
+            .setName('Convert Display Math')
+            .setDesc('Convert \\[...\\] and \\begin{displaymath} to $$...$$')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.bracketReplacement.convertDisplayMath)
+                .onChange(async (value) => {
+                    this.settings.bracketReplacement.convertDisplayMath = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Convert Inline Math')
+            .setDesc('Convert \\(...\\) and \\begin{math} to $...$')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.bracketReplacement.convertInlineMath)
+                .onChange(async (value) => {
+                    this.settings.bracketReplacement.convertInlineMath = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Preserve Single Dollar')
+            .setDesc('Keep single $ delimiters unchanged')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.bracketReplacement.preserveSingleDollar)
+                .onChange(async (value) => {
+                    this.settings.bracketReplacement.preserveSingleDollar = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Use Double Backslash')
+            .setDesc('Use \\\\ for newlines in math mode')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.bracketReplacement.useDoubleBackslash)
+                .onChange(async (value) => {
+                    this.settings.bracketReplacement.useDoubleBackslash = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private addLabelSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Labels & References' });
+
+        new Setting(containerEl)
+            .setName('Remove Labels')
+            .setDesc('Remove \\label{...} commands from the output')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.labelAndReference.removeLabels)
+                .onChange(async (value) => {
+                    this.settings.labelAndReference.removeLabels = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Reference Handling')
+            .setDesc('How to handle \\ref and \\eqref commands')
+            .addDropdown(dropdown => dropdown
+                .addOption('ignore', 'Leave as-is')
+                .addOption('placeholder', 'Use placeholders')
+                .addOption('autoNumber', 'Auto-number')
+                .setValue(this.settings.labelAndReference.referenceHandling)
+                .onChange(async (value: 'ignore' | 'placeholder' | 'autoNumber') => {
+                    this.settings.labelAndReference.referenceHandling = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Only show auto-numbering settings if auto-number is selected
+        if (this.settings.labelAndReference.referenceHandling === 'autoNumber') {
+            new Setting(containerEl)
+                .setName('Starting Numbers')
+                .setDesc('Set starting numbers for auto-numbering')
+                .addText(text => text
+                    .setPlaceholder('1')
+                    .setValue(this.settings.labelAndReference.autoNumbering.startEquation.toString())
+                    .onChange(async (value) => {
+                        const num = parseInt(value);
+                        if (!isNaN(num)) {
+                            this.settings.labelAndReference.autoNumbering.startEquation = num;
+                            await this.plugin.saveSettings();
+                        }
+                    }))
+                .addText(text => text
+                    .setPlaceholder('1')
+                    .setValue(this.settings.labelAndReference.autoNumbering.startFigure.toString())
+                    .onChange(async (value) => {
+                        const num = parseInt(value);
+                        if (!isNaN(num)) {
+                            this.settings.labelAndReference.autoNumbering.startFigure = num;
+                            await this.plugin.saveSettings();
+                        }
+                    }));
+        }
+    }
+
+    private addCitationSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Citations' });
+
+        new Setting(containerEl)
+            .setName('Enable Citation Conversion')
+            .setDesc('Convert LaTeX citations to Obsidian format')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.citation.enabled)
+                .onChange(async (value) => {
+                    this.settings.citation.enabled = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Default Citation Format')
+            .setDesc('Format for basic \\cite{} commands')
+            .addText(text => text
+                .setPlaceholder('[cite: $key]')
+                .setValue(this.settings.citation.defaultFormat)
+                .onChange(async (value) => {
+                    this.settings.citation.defaultFormat = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Custom Citation Formats')
+            .setDesc('Add custom citation formats (one per line, format: command=template)')
+            .addTextArea(text => text
+                .setPlaceholder('citet=$author ($year)\ncitep=[$key]')
+                .setValue(Object.entries(this.settings.citation.customFormats)
+                    .map(([k, v]) => `${k}=${v}`).join('\n'))
+                .onChange(async (value) => {
+                    try {
+                        const formats: Record<string, string> = {};
+                        value.split('\n').forEach(line => {
+                            const [cmd, template] = line.trim().split('=');
+                            if (cmd && template) {
+                                formats[cmd.trim()] = template.trim();
+                            }
+                        });
+                        this.settings.citation.customFormats = formats;
+                        await this.plugin.saveSettings();
+                    } catch (error) {
+                        logger.error('Error parsing custom citation formats', error);
+                    }
+                }));
+    }
+
+    private addAdvancedSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Advanced Settings' });
+
+        new Setting(containerEl)
+            .setName('Expand Macros')
+            .setDesc('Expand LaTeX macros in the input')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.advanced.expandMacros)
+                .onChange(async (value) => {
+                    this.settings.advanced.expandMacros = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Remove \\left and \\right')
+            .setDesc('Remove \\left and \\right commands from delimiters')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.advanced.removeLeftRight)
+                .onChange(async (value) => {
+                    this.settings.advanced.removeLeftRight = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Unify \\text to \\mathrm')
+            .setDesc('Convert \\text{} to \\mathrm{} in math mode')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.advanced.unifyTextToMathrm)
+                .onChange(async (value) => {
+                    this.settings.advanced.unifyTextToMathrm = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Debug Logging')
+            .setDesc('Enable detailed logging for debugging')
+            .addToggle(toggle => toggle
+                .setValue(this.settings.advanced.debugLogging)
+                .onChange(async (value) => {
+                    this.settings.advanced.debugLogging = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private addImportExportSettings(containerEl: HTMLElement): void {
+        containerEl.createEl('h3', { text: 'Import/Export Settings' });
+
+        // Export button
+        new Setting(containerEl)
+            .setName('Export Settings')
+            .setDesc('Export your settings to a JSON file')
+            .addButton((button: ButtonComponent) => {
+                button
+                    .setButtonText('Export')
+                    .onClick(async () => {
+                        try {
+                            const json = exportSettings(this.settings);
+                            const blob = new Blob([json], { type: 'application/json' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'latex-translator-settings.json';
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            new Notice('Settings exported successfully');
+                        } catch (error) {
+                            logger.error('Error exporting settings', error);
+                            new Notice('Error exporting settings');
+                        }
+                    });
+            });
+
+        // Import interface
+        const importSetting = new Setting(containerEl)
+            .setName('Import Settings')
+            .setDesc('Import settings from a JSON file');
+
+        // Add file input
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const json = e.target?.result as string;
+                    const imported = importSettings(json);
+                    
+                    // Validate imported settings
+                    const validation = validateSettings(imported);
+                    
+                    if (validation.warnings.length > 0) {
+                        new Notice(`Warnings:\n${validation.warnings.join('\n')}`, 5000);
+                    }
+                    
+                    if (validation.isValid) {
+                        this.settings = imported;
+                        await this.plugin.saveSettings();
+                        this.display(); // Refresh settings UI
+                        new Notice('Settings imported successfully');
+                    } else {
+                        new Notice(`Invalid settings:\n${validation.errors.join('\n')}`, 5000);
+                    }
+                } catch (error) {
+                    logger.error('Error importing settings', error);
+                    new Notice('Error importing settings');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        containerEl.appendChild(fileInput);
+
+        importSetting.addButton((button: ButtonComponent) => {
+            button
+                .setButtonText('Import')
+                .onClick(() => {
+                    fileInput.click();
+                });
+        });
+
+        // Add validation status
+        const validation = validateSettings(this.settings);
+        if (validation.warnings.length > 0 || !validation.isValid) {
+            const statusContainer = containerEl.createDiv('settings-validation-status');
+            
+            if (!validation.isValid) {
+                statusContainer.createEl('h4', { 
+                    text: 'Settings Errors',
+                    cls: 'settings-validation-error'
+                });
+                const errorList = statusContainer.createEl('ul');
+                validation.errors.forEach(error => {
+                    errorList.createEl('li', { text: error });
+                });
+            }
+            
+            if (validation.warnings.length > 0) {
+                statusContainer.createEl('h4', { 
+                    text: 'Settings Warnings',
+                    cls: 'settings-validation-warning'
+                });
+                const warningList = statusContainer.createEl('ul');
+                validation.warnings.forEach(warning => {
+                    warningList.createEl('li', { text: warning });
+                });
+            }
+        }
+    }
+}

@@ -7,5 +7,17 @@
 	"author": "M|inc Team",
 	"authorUrl": "https://github.com/deadcoast/Minc-Obsidian-LaTeX-Translator",
 	"fundingUrl": "https://github.com/deadcoast",
-	"isDesktopOnly": false
+	"isDesktopOnly": false,
+	"commands": [
+		{
+			"id": "open-latex-translator",
+			"name": "Open LaTeX Translator",
+			"icon": "latex-translator"
+		},
+		{
+			"id": "convert-latex",
+			"name": "Convert LaTeX in current file",
+			"icon": "latex-translator"
+		}
+	]
 }
