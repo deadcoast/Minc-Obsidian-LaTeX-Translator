@@ -1,6 +1,9 @@
 /*******************************************************
  * TYPES & INTERFACES
  ********************************************************/
+import { ENVIRONMENT_MAPPINGS, ERROR_MESSAGES, MATH_DELIMITERS, REFERENCE_FORMATS, CITATION_FORMATS, VALID_NESTING, COMMON_MACROS } from './constants';
+import { logger } from '../../utils/logger';
+
 export interface ParserOptions {
 	/** Convert \begin{env}...\end{env} to $$ blocks? */
 	convertEnvironments?: boolean;
@@ -134,7 +137,7 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
                     return info ? REFERENCE_FORMATS.CUSTOM.eqref.replace('$number', info.number.toString()) : '(?)';
                 }],
                 // Page references
-                [/\\pageref\{([^}]*)\}/g, label => {
+                [/\\pageref\{([^}]*)\}/g, _ => {
                     return REFERENCE_FORMATS.CUSTOM.pageref.replace('$number', '?');
                 }],
                 // Name references
@@ -145,15 +148,17 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
                 // Auto references
                 [/\\autoref\{([^}]*)\}/g, label => {
                     const info = labels.get(label);
-                    return info ? REFERENCE_FORMATS.CUSTOM.autoref
-                        .replace('$type', info.type)
+                    const format = REFERENCE_FORMATS.CUSTOM?.autoref ?? REFERENCE_FORMATS.DEFAULT ?? '(?)';
+                    return info ? format
+                        .replace('$type', info.type ?? '')
                         .replace('$number', info.number.toString()) : '(?)';
                 }],
                 // Visual references
                 [/\\vref\{([^}]*)\}/g, label => {
                     const info = labels.get(label);
-                    return info ? REFERENCE_FORMATS.CUSTOM.vref
-                        .replace('$type', info.type)
+                    const format = REFERENCE_FORMATS.CUSTOM?.vref ?? REFERENCE_FORMATS.DEFAULT ?? '(?)';
+                    return info ? format
+                        .replace('$type', info.type ?? '')
                         .replace('$number', info.number.toString())
                         .replace('$page', '?') : '(?)';
                 }]
@@ -220,7 +225,7 @@ function expandMacros(text: string): string {
                     );
                 }
                 let result = replacement;
-                argMatches.forEach((arg, i) => {
+                argMatches.forEach((arg: string, i: number) => {
                     const argContent = arg.slice(1, -1);
                     result = result.replace(
                         new RegExp(`#${i + 1}(?!\\d)`, 'g'),
@@ -263,8 +268,8 @@ function convertCitations(text: string): string {
         ];
 
         return citationReplacements.reduce((acc, [pattern, format]) => {
-            return acc.replace(pattern, (_, keys) => {
-                const citations = keys.split(',').map(key => {
+            return acc.replace(pattern, (_, keys: string) => {
+                const citations = keys.split(',').map((key: string) => {
                     const trimmedKey = key.trim();
                     if (!/^[a-zA-Z0-9_:-]+$/.test(trimmedKey)) {
                         logger.warning(ERROR_MESSAGES.CITATION_ERROR(trimmedKey));
@@ -289,37 +294,51 @@ function convertCitations(text: string): string {
 /*******************************************************
  * NESTED ENVIRONMENTS PARSER HELPERS
  *******************************************************/
-function replaceNestedEnvironments(text: string, envPattern: string): string {
+function replaceNestedEnvironments(text: string, envPattern: string, options: ParserOptions): string {
     try {
-        const envStack: string[] = [];
-        const result = text.replace(
-            new RegExp(`\\\\(begin|end)\\{(${envPattern})\\}`, 'g'),
-            (match, command, env) => {
-                if (command === 'begin') {
-                    // Check nesting validity
-                    if (envStack.length > 0) {
-                        const outerEnv = envStack[envStack.length - 1];
-                        if (VALID_NESTING[outerEnv] && !VALID_NESTING[outerEnv].includes(env)) {
-                            logger.warning(ERROR_MESSAGES.NESTED_ERROR(outerEnv, env));
-                        }
-                    }
-                    envStack.push(env);
-                } else {
-                    const lastEnv = envStack.pop();
-                    if (lastEnv !== env) {
-                        logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
-                        // Try to recover by assuming the environment is closed
-                        return `\\end{${env}}`;
+        const envStack: Array<{ env: string; startIndex: number }> = [];
+        let result = text;
+        let offset = 0;
+
+        const matches = Array.from(result.matchAll(new RegExp(`\\\\(begin|end)\\{(${envPattern})\\}`, 'g')));
+        
+        for (const match of matches) {
+            const [fullMatch, command, env] = match;
+            const index = match.index! + offset;
+            
+            if (command === 'begin') {
+                // Check nesting validity
+                if (envStack.length > 0) {
+                    const outerEnv = envStack[envStack.length - 1].env;
+                    if (VALID_NESTING[outerEnv] && !VALID_NESTING[outerEnv].includes(env)) {
+                        logger.warning(ERROR_MESSAGES.NESTED_ERROR(outerEnv, env));
                     }
                 }
-                return match;
+                envStack.push({ env, startIndex: index + fullMatch.length });
+            } else {
+                const envInfo = envStack.pop();
+                if (!envInfo || envInfo.env !== env) {
+                    logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
+                    continue;
+                }
+                
+                // Extract and convert the environment content
+                const content = result.slice(envInfo.startIndex, index);
+                const converted = convertEnvironmentToDisplay(env, content, options);
+                
+                // Replace the entire environment (including begin/end tags) with the converted content
+                const fullEnv = result.slice(envInfo.startIndex - fullMatch.length, index + fullMatch.length);
+                result = result.slice(0, envInfo.startIndex - fullMatch.length) + converted + result.slice(index + fullMatch.length);
+                
+                // Update offset for subsequent replacements
+                offset += converted.length - fullEnv.length;
             }
-        );
+        }
 
         // Check for unclosed environments
         if (envStack.length > 0) {
-            envStack.forEach(env => {
-                logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
+            envStack.forEach(info => {
+                logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(info.env));
             });
         }
 
@@ -362,7 +381,7 @@ export function parseLatexToObsidian(text: string, options: ParserOptions = {}):
                 .concat(finalOptions.extraEnvironments)
                 .join('|');
             
-            processedText = replaceNestedEnvironments(processedText, envPattern);
+            processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
         }
 
         // Step 3: Handle labels and references

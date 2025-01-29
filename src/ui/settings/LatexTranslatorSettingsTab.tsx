@@ -25,6 +25,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
         this.addLabelSettings(containerEl);
         this.addCitationSettings(containerEl);
         this.addAdvancedSettings(containerEl);
+        this.addBatchOperationSettings(containerEl);
         this.addImportExportSettings(containerEl);
 
         // UI Settings
@@ -458,6 +459,145 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .setValue(this.settings.advanced.debugLogging)
                 .onChange(async (value) => {
                     this.settings.advanced.debugLogging = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private addBatchOperationSettings(containerEl: HTMLElement): void {
+        const { settings } = this;
+
+        new Setting(containerEl)
+            .setName('Batch Operations')
+            .setHeading();
+
+        new Setting(containerEl)
+            .setName('Default Recursive Processing')
+            .setDesc('Process subfolders by default in batch operations')
+            .addToggle(toggle => toggle
+                .setValue(settings.batchOperations.defaultRecursive)
+                .onChange(async value => {
+                    settings.batchOperations.defaultRecursive = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Skip Existing Translations')
+            .setDesc('Skip files that have already been translated')
+            .addToggle(toggle => toggle
+                .setValue(settings.batchOperations.defaultSkipExisting)
+                .onChange(async value => {
+                    settings.batchOperations.defaultSkipExisting = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Create Backups')
+            .setDesc('Create backup files before batch processing')
+            .addToggle(toggle => toggle
+                .setValue(settings.batchOperations.defaultCreateBackups)
+                .onChange(async value => {
+                    settings.batchOperations.defaultCreateBackups = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Show Completion Notification')
+            .setDesc('Show a notification when batch processing completes')
+            .addToggle(toggle => toggle
+                .setValue(settings.batchOperations.defaultNotifyOnCompletion)
+                .onChange(async value => {
+                    settings.batchOperations.defaultNotifyOnCompletion = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Error Threshold')
+            .setDesc('Stop processing if error rate exceeds this percentage (0-100)')
+            .addSlider(slider => slider
+                .setLimits(0, 100, 5)
+                .setValue(settings.batchOperations.defaultErrorThreshold * 100)
+                .setDynamicTooltip()
+                .onChange(async value => {
+                    settings.batchOperations.defaultErrorThreshold = value / 100;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Auto-save Error Reports')
+            .setDesc('Automatically save error reports after batch processing')
+            .addToggle(toggle => toggle
+                .setValue(settings.batchOperations.autoSaveErrorReports)
+                .onChange(async value => {
+                    settings.batchOperations.autoSaveErrorReports = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Error Report Location')
+            .setDesc('Folder path for error reports (relative to vault root)')
+            .addText(text => text
+                .setValue(settings.batchOperations.errorReportLocation)
+                .onChange(async value => {
+                    settings.batchOperations.errorReportLocation = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Max Concurrent Files')
+            .setDesc('Maximum number of files to process simultaneously')
+            .addSlider(slider => slider
+                .setLimits(1, 10, 1)
+                .setValue(settings.batchOperations.maxConcurrentFiles)
+                .setDynamicTooltip()
+                .onChange(async value => {
+                    settings.batchOperations.maxConcurrentFiles = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Process Delay')
+            .setDesc('Delay between processing files (ms)')
+            .addSlider(slider => slider
+                .setLimits(0, 500, 50)
+                .setValue(settings.batchOperations.processDelay)
+                .setDynamicTooltip()
+                .onChange(async value => {
+                    settings.batchOperations.processDelay = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Hotkeys section
+        new Setting(containerEl)
+            .setName('Batch Operation Hotkeys')
+            .setHeading();
+
+        new Setting(containerEl)
+            .setName('Open Batch Modal')
+            .setDesc('Hotkey to open the batch operations modal')
+            .addText(text => text
+                .setValue(settings.batchOperations.hotkeys.openBatchModal)
+                .onChange(async value => {
+                    settings.batchOperations.hotkeys.openBatchModal = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Quick Batch Current Folder')
+            .setDesc('Hotkey to quickly process the current folder')
+            .addText(text => text
+                .setValue(settings.batchOperations.hotkeys.quickBatchCurrentFolder)
+                .onChange(async value => {
+                    settings.batchOperations.hotkeys.quickBatchCurrentFolder = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Quick Batch Vault')
+            .setDesc('Hotkey to quickly process the entire vault')
+            .addText(text => text
+                .setValue(settings.batchOperations.hotkeys.quickBatchVault)
+                .onChange(async value => {
+                    settings.batchOperations.hotkeys.quickBatchVault = value;
                     await this.plugin.saveSettings();
                 }));
     }

@@ -378,12 +378,122 @@ export default class LatexTranslatorPlugin extends Plugin {
             hotkeys: [{ modifiers: ['Mod', 'Alt'], key: 'A' }]
         });
 
+        this.registerBatchOperationCommands();
+
         // Initialize status bar
         const statusBarItem = this.addStatusBarItem();
         this.statusBar = new LatexStatusBar(statusBarItem, this.history);
 
         // Log plugin load
         logger.info('LaTeX Translator plugin loaded');
+    }
+
+    private registerBatchOperationCommands(): void {
+        // Open batch operations modal
+        this.addCommand({
+            id: 'open-batch-operations',
+            name: 'Open Batch Operations',
+            callback: () => {
+                new BatchOperationsModal(
+                    this.app,
+                    this.settings,
+                    this.translator
+                ).open();
+            },
+            hotkeys: [
+                {
+                    modifiers: this.parseHotkey(this.settings.batchOperations.hotkeys.openBatchModal),
+                    key: this.settings.batchOperations.hotkeys.openBatchModal.split('+').pop() || ''
+                }
+            ]
+        });
+
+        // Quick batch current folder
+        this.addCommand({
+            id: 'quick-batch-current-folder',
+            name: 'Quick Batch Current Folder',
+            checkCallback: (checking: boolean) => {
+                const activeFile = this.app.workspace.getActiveFile();
+                if (!activeFile) return false;
+                
+                if (!checking) {
+                    const folder = activeFile.parent;
+                    if (folder) {
+                        const batchProcessor = new BatchProcessor(
+                            this.app.vault,
+                            this.settings,
+                            this.translator
+                        );
+                        
+                        batchProcessor.processSingleFolder(folder.path, {
+                            recursive: this.settings.batchOperations.defaultRecursive,
+                            skipExisting: this.settings.batchOperations.defaultSkipExisting,
+                            createBackups: this.settings.batchOperations.defaultCreateBackups,
+                            notifyOnCompletion: this.settings.batchOperations.defaultNotifyOnCompletion,
+                            errorThreshold: this.settings.batchOperations.defaultErrorThreshold
+                        });
+                    }
+                }
+                return true;
+            },
+            hotkeys: [
+                {
+                    modifiers: this.parseHotkey(this.settings.batchOperations.hotkeys.quickBatchCurrentFolder),
+                    key: this.settings.batchOperations.hotkeys.quickBatchCurrentFolder.split('+').pop() || ''
+                }
+            ]
+        });
+
+        // Quick batch entire vault
+        this.addCommand({
+            id: 'quick-batch-vault',
+            name: 'Quick Batch Entire Vault',
+            callback: () => {
+                const batchProcessor = new BatchProcessor(
+                    this.app.vault,
+                    this.settings,
+                    this.translator
+                );
+                
+                batchProcessor.processVault({
+                    recursive: this.settings.batchOperations.defaultRecursive,
+                    skipExisting: this.settings.batchOperations.defaultSkipExisting,
+                    createBackups: this.settings.batchOperations.defaultCreateBackups,
+                    notifyOnCompletion: this.settings.batchOperations.defaultNotifyOnCompletion,
+                    errorThreshold: this.settings.batchOperations.defaultErrorThreshold
+                });
+            },
+            hotkeys: [
+                {
+                    modifiers: this.parseHotkey(this.settings.batchOperations.hotkeys.quickBatchVault),
+                    key: this.settings.batchOperations.hotkeys.quickBatchVault.split('+').pop() || ''
+                }
+            ]
+        });
+    }
+
+    private parseHotkey(hotkeyStr: string): string[] {
+        return hotkeyStr
+            .toLowerCase()
+            .split('+')
+            .filter(part => part !== '')
+            .map(part => {
+                switch (part.trim()) {
+                    case 'mod':
+                        return Platform.isMacOS ? 'Meta' : 'Ctrl';
+                    case 'cmd':
+                        return 'Meta';
+                    case 'ctrl':
+                        return 'Ctrl';
+                    case 'shift':
+                        return 'Shift';
+                    case 'alt':
+                        return 'Alt';
+                    default:
+                        return '';
+                }
+            })
+            .filter(mod => mod !== '');
     }
 
     private async translateWithOptions(

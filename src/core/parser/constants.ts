@@ -41,22 +41,16 @@ export const ENVIRONMENT_MAPPINGS: Record<string, string> = {
 
 // Error messages for better error handling
 export const ERROR_MESSAGES = {
-    UNMATCHED_ENVIRONMENT: (env: string) => 
-        `Unmatched environment: \\begin{${env}} without corresponding \\end{${env}}`,
-    UNMATCHED_BRACKETS: (type: string) => 
-        `Unmatched ${type} brackets detected`,
-    INVALID_MACRO: (name: string) => 
-        `Invalid macro name: ${name}. Macro names must contain only letters`,
+    UNMATCHED_ENVIRONMENT: (env: string) => `Unmatched environment: ${env}`,
+    UNMATCHED_BRACKETS: (type: string) => `Unmatched ${type} brackets`,
+    INVALID_MACRO: (name: string) => `Invalid macro: ${name}`,
     MACRO_ARG_MISMATCH: (name: string, expected: number, got: number) => 
         `Macro ${name} expects ${expected} arguments but got ${got}`,
     NESTED_ERROR: (outer: string, inner: string) => 
-        `Invalid nesting: ${inner} environment inside ${outer}`,
-    CITATION_ERROR: (key: string) => 
-        `Invalid citation key: ${key}`,
-    LABEL_ERROR: (label: string) => 
-        `Invalid label: ${label}`,
-    UNKNOWN_ENVIRONMENT: (env: string) => 
-        `Unknown environment: ${env}. Will be preserved as-is`
+        `Invalid nesting: ${inner} inside ${outer}`,
+    CITATION_ERROR: (key: string) => `Invalid citation key: ${key}`,
+    LABEL_ERROR: (label: string) => `Invalid label: ${label}`,
+    UNKNOWN_ENVIRONMENT: (env: string) => `Unknown environment: ${env}`
 };
 
 // Common LaTeX macros for expansion
@@ -70,8 +64,33 @@ export const COMMON_MACROS: Record<string, string> = {
     '\\mat': '\\mathbf',
 };
 
+// Citation formats for different citation types
+interface CitationFormats {
+    CUSTOM: {
+        cite: string;
+        citep: string;
+        citet: string;
+        citeauthor: string;
+        citeyear: string;
+        citetitle: string;
+        fullcite: string;
+    }
+}
+
+export const CITATION_FORMATS: CitationFormats = {
+    CUSTOM: {
+        cite: '[@$1]',
+        citep: '[@$1]',
+        citet: '@$1',
+        citeauthor: '$1',
+        citeyear: '($1)',
+        citetitle: '*$1*',
+        fullcite: '[@$1]'
+    }
+};
+
 // Citation formats for different citation commands
-export const CITATION_FORMATS = {
+export const CITATION_FORMATS_COMMANDS = {
     DEFAULT: '[cite: $key]',
     PAREN: '[cite: $key]',
     TEXT: '$author ($year)',
@@ -90,22 +109,40 @@ export const CITATION_FORMATS = {
     }
 };
 
-// Math mode delimiters and environments
+// Math delimiter patterns
 export const MATH_DELIMITERS = {
     DISPLAY: [
-        [/\\[\s\n]*\[([\s\S]*?)\\[\s\n]*\]/g, '$$$$1$$'],
-        [/\\begin\{displaymath\}([\s\S]*?)\\end\{displaymath\}/g, '$$$$1$$'],
-        [/\\begin\{equation\*\}([\s\S]*?)\\end\{equation\*\}/g, '$$$$1$$']
+        [/\$\$([\s\S]*?)\$\$/g, '$$\n$1\n$$'], // $$...$$
+        [/\\begin{displaymath}([\s\S]*?)\\end{displaymath}/g, '$$\n$1\n$$'],
+        [/\\begin{equation\*?}([\s\S]*?)\\end{equation\*?}/g, '$$\n$1\n$$'],
+        [/\\[\[\]]([\s\S]*?)\\[\[\]]/g, '$$\n$1\n$$'], // \[...\]
     ],
     INLINE: [
-        [/\\[\s\n]*\(([\s\S]*?)\\[\s\n]*\)/g, '$$$1$$'],
-        [/\\begin\{math\}([\s\S]*?)\\end\{math\}/g, '$$$1$$'],
-        [/\$([^$]*?)\$/g, '$$$1$$'] // Preserve single $ delimiters
+        [/\$((?:[^$]|\\\$)*?[^\\])\$/g, '$\n$1\n$'], // $...$
+        [/\\begin{math}([\s\S]*?)\\end{math}/g, '$\n$1\n$'],
+        [/\\(\(|\))([\s\S]*?)\\(\(|\))/g, '$\n$2\n$'], // \(...\)
     ]
-};
+} as const;
 
 // Reference formats for different reference types
-export const REFERENCE_FORMATS = {
+interface ReferenceFormats {
+    DEFAULT: string;
+    EQUATION: string;
+    SECTION: string;
+    FIGURE: string;
+    PAGE: string;
+    NAME: string;
+    CUSTOM: {
+        ref: string;
+        eqref: string;
+        pageref: string;
+        nameref: string;
+        autoref: string;
+        vref: string;
+    };
+}
+
+export const REFERENCE_FORMATS: ReferenceFormats = {
     DEFAULT: '(ref: $label)',
     EQUATION: '(eq. $number)',
     SECTION: '(sec. $number)',
@@ -124,10 +161,10 @@ export const REFERENCE_FORMATS = {
 
 // Valid nesting rules for environments
 export const VALID_NESTING: Record<string, string[]> = {
-    'align': ['matrix', 'pmatrix', 'bmatrix', 'cases', 'gathered'],
-    'align*': ['matrix', 'pmatrix', 'bmatrix', 'cases', 'gathered'],
-    'equation': ['matrix', 'pmatrix', 'bmatrix', 'cases', 'gathered'],
-    'equation*': ['matrix', 'pmatrix', 'bmatrix', 'cases', 'gathered'],
-    'gather': ['matrix', 'pmatrix', 'bmatrix', 'cases'],
-    'gather*': ['matrix', 'pmatrix', 'bmatrix', 'cases']
+    'align': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
+    'align*': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
+    'equation': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
+    'equation*': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
+    'gather': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
+    'gather*': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix']
 };

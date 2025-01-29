@@ -95,19 +95,25 @@ export class CommandHistory {
             }
         };
 
-        if (this.history.length === 0) return stats;
+        if (this.history.length === 0) {
+          return stats;
+        }
 
         let totalSelectionLength = 0;
         let totalDuration = 0;
-        const now = new Date();
 
         this.history.forEach(entry => {
             // Basic stats
-            if (entry.success) stats.successfulCommands++;
-            else stats.failedCommands++;
+            if (entry.success) {
+              stats.successfulCommands++;
+            } else {
+              stats.failedCommands++;
+            }
 
             totalSelectionLength += entry.selectionLength;
-            if (entry.duration) totalDuration += entry.duration;
+            if (entry.duration) {
+              totalDuration += entry.duration;
+            }
             stats.commandCounts[entry.commandId] = (stats.commandCounts[entry.commandId] || 0) + 1;
 
             // Conversion stats
@@ -147,8 +153,7 @@ export class CommandHistory {
 
     getProductivityStats(): ProductivityStats {
         const stats = this.getStatistics();
-        const now = Date.now();
-        const uptime = now - this.startTime;
+        const uptime = Date.now() - this.startTime;
 
         return {
             commandsPerHour: (stats.totalCommands / (uptime / 3600000)),
