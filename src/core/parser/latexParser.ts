@@ -1,42 +1,50 @@
 /*******************************************************
  * TYPES & INTERFACES
  ********************************************************/
-import { ENVIRONMENT_MAPPINGS, ERROR_MESSAGES, MATH_DELIMITERS, REFERENCE_FORMATS, CITATION_FORMATS, VALID_NESTING, COMMON_MACROS } from './constants';
+import {
+    MATH_DELIMITERS,
+    MATH_OPERATORS,
+    MATH_SPACING,
+    MATH_ENVIRONMENTS,
+    VALID_NESTING,
+    ARRAY_COLUMN_TYPES,
+    COMMON_MACROS,
+    CITATION_FORMATS,
+    REFERENCE_FORMATS,
+    DEFAULT_OBSIDIAN_CONFIG,
+    ObsidianMathConfig,
+    MathOperator,
+    SpacingCommand,
+    ERROR_MESSAGES,
+    CustomMacroDefinition,
+    isValidEnvironment
+} from './constants';
+import { ENVIRONMENT_MAPPINGS, THEOREM_MAPPINGS } from '../config/environments';
 import { logger } from '../../utils/logger';
 
+import { 
+    DelimiterMismatchError, 
+    EnvironmentMismatchError, 
+    InvalidNestingError, 
+    UnknownEnvironmentError,
+    ErrorRecovery 
+} from '../errors/parserErrors';
+
+import { TheoremParser } from './theoremParser';
+
 export interface ParserOptions {
-	/** Convert \begin{env}...\end{env} to $$ blocks? */
-	convertEnvironments?: boolean;
-
-	/** Additional environment names you want to treat as display math.
-	 *  By default, we handle: equation, align, align*, cases
-	 */
-	extraEnvironments?: string[];
-
-	/** Also convert eqnarray to $$...$$? */
-	convertEqnarray?: boolean;
-
-	/** Remove \label{} entirely? */
-	removeLabels?: boolean;
-
-	/** How to handle \ref{} or \eqref{}?
-	 * 'ignore'      = Leave them as-is
-	 * 'placeholder' = Convert to (ref: label)
-	 * 'autoNumber'  = Attempt to auto-number equations
-	 */
-	handleRefs?: 'ignore' | 'placeholder' | 'autoNumber';
-
-	/** Expand custom macros from \newcommand or \renewcommand? */
-	expandMacros?: boolean;
-
-	/** Convert \cite{...} to [cite: ...]? */
-	convertCitations?: boolean;
-
-	/** Remove \left and \right commands, e.g. \left( -> ( */
-	removeLeftRight?: boolean;
-
-	/** Convert \text{xyz} into \mathrm{xyz}? */
-	unifyTextToMathrm?: boolean;
+    direction: 'latex-to-obsidian' | 'obsidian-to-latex';
+    convertEnvironments?: boolean;
+    extraEnvironments?: string[];
+    convertEqnarray?: boolean;
+    removeLabels?: boolean;
+    preserveLabels?: boolean;
+    handleRefs?: 'placeholder' | 'resolve';
+    expandMacros?: boolean;
+    convertCitations?: boolean;
+    removeLeftRight?: boolean;
+    unifyTextToMathrm?: boolean;
+    numberEquations?: boolean;
 }
 
 /*******************************************************
@@ -61,6 +69,24 @@ function convertEnvironmentToDisplay(env: string, content: string, options: Pars
             });
         }
 
+        // Handle theorem-like environments
+        if (THEOREM_MAPPINGS[env]) {
+            const theoremParser = new TheoremParser();
+            return theoremParser.processTheorem(env, content);
+        }
+
+        // Handle alignat environments
+        if (env === 'alignat' || env === 'alignat*') {
+            const theoremParser = new TheoremParser();
+            return theoremParser.processAlignat(content, env === 'alignat*');
+        }
+
+        // Handle subequations
+        if (env === 'subequations') {
+            const theoremParser = new TheoremParser();
+            return theoremParser.processSubequations(content);
+        }
+
         // Convert to Obsidian display math format
         return `$$ \\begin{${targetEnv}}\n${processedContent}\n\\end{${targetEnv}} $$`;
     } catch (error) {
@@ -78,17 +104,17 @@ function replaceMathDelimiters(text: string): string {
 
         // Handle display math delimiters
         MATH_DELIMITERS.DISPLAY.forEach(([pattern, replacement]) => {
-            processedText = processedText.replace(pattern, replacement as string);
+            processedText = processedText.replace(pattern, replacement);
         });
 
         // Handle inline math delimiters
         MATH_DELIMITERS.INLINE.forEach(([pattern, replacement]) => {
-            processedText = processedText.replace(pattern, replacement as string);
+            processedText = processedText.replace(pattern, replacement);
         });
 
         return processedText;
     } catch (error) {
-        logger.error('Error replacing math delimiters', error);
+        logger.error('Error replacing math delimiters:', error);
         return text;
     }
 }
@@ -107,9 +133,9 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
             table: 1
         };
 
-        if (options.handleRefs === 'autoNumber') {
+        if (options.handleRefs === 'resolve') {
             // First pass: collect all labels and their context
-            const labelRegex = /\\label\{([^}]*)\}/g;
+            const labelRegex = /\\label\{([^}]+)\}/g;
             let match;
             while ((match = labelRegex.exec(text)) !== null) {
                 const label = match[1];
@@ -127,26 +153,26 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
             // Second pass: replace references with appropriate format
             const refReplacements: [RegExp, (label: string) => string][] = [
                 // Basic references
-                [/\\ref\{([^}]*)\}/g, label => {
+                [/\\ref\{([^}]+)\}/g, label => {
                     const info = labels.get(label);
                     return info ? REFERENCE_FORMATS.CUSTOM.ref.replace('$label', label) : '(?)';
                 }],
                 // Equation references
-                [/\\eqref\{([^}]*)\}/g, label => {
+                [/\\eqref\{([^}]+)\}/g, label => {
                     const info = labels.get(label);
                     return info ? REFERENCE_FORMATS.CUSTOM.eqref.replace('$number', info.number.toString()) : '(?)';
                 }],
                 // Page references
-                [/\\pageref\{([^}]*)\}/g, _ => {
+                [/\\pageref\{([^}]+)\}/g, _ => {
                     return REFERENCE_FORMATS.CUSTOM.pageref.replace('$number', '?');
                 }],
                 // Name references
-                [/\\nameref\{([^}]*)\}/g, label => {
+                [/\\nameref\{([^}]+)\}/g, label => {
                     const info = labels.get(label);
                     return info?.name ? REFERENCE_FORMATS.CUSTOM.nameref.replace('$name', info.name) : '(?)';
                 }],
                 // Auto references
-                [/\\autoref\{([^}]*)\}/g, label => {
+                [/\\autoref\{([^}]+)\}/g, label => {
                     const info = labels.get(label);
                     const format = REFERENCE_FORMATS.CUSTOM?.autoref ?? REFERENCE_FORMATS.DEFAULT ?? '(?)';
                     return info ? format
@@ -154,7 +180,7 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
                         .replace('$number', info.number.toString()) : '(?)';
                 }],
                 // Visual references
-                [/\\vref\{([^}]*)\}/g, label => {
+                [/\\vref\{([^}]+)\}/g, label => {
                     const info = labels.get(label);
                     const format = REFERENCE_FORMATS.CUSTOM?.vref ?? REFERENCE_FORMATS.DEFAULT ?? '(?)';
                     return info ? format
@@ -168,7 +194,7 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
                 processedText = processedText.replace(pattern, (_, label) => replacer(label));
             });
         } else if (options.handleRefs === 'placeholder') {
-            processedText = processedText.replace(/\\(?:eq|page|name|auto|v)?ref\{([^}]*)\}/g, (match, label) => {
+            processedText = processedText.replace(/\\(?:eq|page|name|auto|v)?ref\{([^}]+)\}/g, (match, label) => {
                 const refType = match.startsWith('\\eqref') ? 'EQUATION' :
                               match.startsWith('\\pageref') ? 'PAGE' :
                               match.startsWith('\\nameref') ? 'NAME' :
@@ -195,7 +221,7 @@ function handleLabelsAndRefs(text: string, options: ParserOptions): string {
 function expandMacros(text: string): string {
     try {
         let processedText = text;
-        const customMacros = new Map<string, { replacement: string; args: number }>();
+        const customMacros = new Map<string, CustomMacroDefinition>();
         
         // First handle custom macro definitions
         processedText = processedText.replace(
@@ -206,22 +232,27 @@ function expandMacros(text: string): string {
                     return _;
                 }
                 const args = argsStr ? parseInt(argsStr, 10) : 0;
-                customMacros.set(name, { replacement, args });
+                customMacros.set(name, { 
+                    name, 
+                    numArgs: args, 
+                    optionalArg: false,
+                    replacement 
+                });
                 return '';
             }
         );
 
         // Apply custom macros
-        customMacros.forEach(({ replacement, args }, name) => {
+        customMacros.forEach(({ replacement, numArgs }, name) => {
             const macroRegex = new RegExp(
-                `\\\\${name}((?:\\{[^}]*\\}){0,${args}})`,
+                `\\\\${name}((?:\\{[^}]*\\}){0,${numArgs}})`,
                 'g'
             );
-            processedText = processedText.replace(macroRegex, (_, argStr) => {
+            processedText = processedText.replace(macroRegex, (_match, argStr) => {
                 const argMatches = argStr.match(/\{([^}]*)\}/g) || [];
-                if (argMatches.length !== args) {
+                if (argMatches.length !== numArgs) {
                     logger.warning(
-                        ERROR_MESSAGES.MACRO_ARG_MISMATCH(name, args, argMatches.length)
+                        ERROR_MESSAGES.MACRO_ARG_MISMATCH(name, numArgs, argMatches.length)
                     );
                 }
                 let result = replacement;
@@ -237,9 +268,19 @@ function expandMacros(text: string): string {
         });
 
         // Apply common predefined macros
-        Object.entries(COMMON_MACROS).forEach(([macro, replacement]) => {
+        Object.entries(COMMON_MACROS).forEach(([macro, definition]) => {
             const macroRegex = new RegExp(macro.replace(/\\/g, '\\\\') + '(?![a-zA-Z])', 'g');
-            processedText = processedText.replace(macroRegex, replacement);
+            processedText = processedText.replace(macroRegex, (match, ...args) => {
+                // Extract arguments based on numArgs
+                const macroArgs = args.slice(0, definition.numArgs);
+                // If the macro has an optional argument and it's provided
+                if (definition.optionalArg && args[0]?.startsWith('[')) {
+                    const optionalArg = args[0].slice(1, -1); // Remove [ ]
+                    return `\\${definition.name}{${macroArgs.join('}{')}}[${optionalArg}]`;
+                }
+                // Regular macro without optional argument
+                return `\\${definition.name}{${macroArgs.join('}{')}}`;
+            });
         });
 
         return processedText;
@@ -310,7 +351,11 @@ function replaceNestedEnvironments(text: string, envPattern: string, options: Pa
                 // Check nesting validity
                 if (envStack.length > 0) {
                     const outerEnv = envStack[envStack.length - 1].env;
-                    if (VALID_NESTING[outerEnv] && !VALID_NESTING[outerEnv].includes(env)) {
+                    const validOuterEnv = isValidEnvironment(outerEnv);
+                    const validInnerEnv = isValidEnvironment(env);
+                    
+                    if (validOuterEnv && validInnerEnv && 
+                        VALID_NESTING[outerEnv] && !VALID_NESTING[outerEnv].includes(env)) {
                         logger.warning(ERROR_MESSAGES.NESTED_ERROR(outerEnv, env));
                     }
                 }
@@ -352,65 +397,966 @@ function replaceNestedEnvironments(text: string, envPattern: string, options: Pa
 /*******************************************************
  * MAIN PARSER FUNCTION
  *******************************************************/
-export function parseLatexToObsidian(text: string, options: ParserOptions = {}): string {
-    try {
-        // Set default options
-        const defaultOptions: Required<ParserOptions> = {
-            convertEnvironments: true,
-            extraEnvironments: [],
-            convertEqnarray: true,
-            removeLabels: false,
-            handleRefs: 'placeholder',
-            expandMacros: true,
-            convertCitations: true,
-            removeLeftRight: true,
-            unifyTextToMathrm: true
-        };
+export class LatexParser {
+    private theoremParser: TheoremParser;
+    private operators: Map<string, { name: string; definition: string }>;
+    private customCommands: Map<string, { name: string; numArgs: number; optionalArg?: string; definition: string }>;
+    private equationCounter: number;
+    private labelRefs: Map<string, string>;
+    private environmentStack: string[] = [];
+    private position: number = 0;
+    private obsidianConfig: ObsidianMathConfig;
 
-        const finalOptions = { ...defaultOptions, ...options };
-        let processedText = text;
+    constructor() {
+        this.theoremParser = new TheoremParser();
+        this.operators = new Map();
+        this.customCommands = new Map();
+        this.equationCounter = 0;
+        this.labelRefs = new Map();
+        this.obsidianConfig = DEFAULT_OBSIDIAN_CONFIG;
+    }
 
-        // Step 1: Expand macros if enabled
-        if (finalOptions.expandMacros) {
-            processedText = expandMacros(processedText);
+    /**
+     * Handle \DeclareMathOperator command
+     */
+    private handleDeclareMathOperator(command: string): string {
+        const pattern = /\\DeclareMathOperator\{\\([^}]+)\}\{([^}]+)\}/;
+        const match = command.match(pattern);
+
+        if (!match) {
+            logger.error('Invalid \\DeclareMathOperator syntax:', command);
+            return command;
         }
 
-        // Step 2: Handle environments
-        if (finalOptions.convertEnvironments) {
-            const envPattern = Object.keys(ENVIRONMENT_MAPPINGS)
-                .concat(finalOptions.extraEnvironments)
-                .join('|');
-            
-            processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
+        const [, name, definition] = match;
+        this.operators.set(name, { name, definition });
+        return '';
+    }
+
+    /**
+     * Handle \newcommand with optional arguments
+     */
+    private handleNewCommand(command: string): string {
+        const pattern = /\\newcommand\{\\([^}]+)\}(?:\[(\d+)\])?(?:\[([^]]+)\])?\{([^}]+)\}/;
+        const match = command.match(pattern);
+
+        if (!match) {
+            logger.error('Invalid \\newcommand syntax:', command);
+            return command;
         }
 
-        // Step 3: Handle labels and references
-        processedText = handleLabelsAndRefs(processedText, finalOptions);
+        const [, name, numArgsStr, optionalArg, definition] = match;
+        const numArgs = numArgsStr ? parseInt(numArgsStr) : 0;
 
-        // Step 4: Convert citations if enabled
-        if (finalOptions.convertCitations) {
-            processedText = convertCitations(processedText);
+        this.customCommands.set(name, {
+            name,
+            numArgs,
+            optionalArg,
+            definition
+        });
+
+        return '';
+    }
+
+    private handleNewTheorem(text: string): string {
+        const newTheoremPattern = /\\newtheorem\{[^}]+\}(?:\[[^]]+\])?\{[^}]+\}(?:\[[^]]+\])?/g;
+        return text.replace(newTheoremPattern, (match) => this.theoremParser.handleNewTheorem(match));
+    }
+
+    /**
+     * Process text commands within math mode
+     */
+    private processTextInMath(text: string): string {
+        return text.replace(/\\text\{([^}]*)\}/g, (_, content) => {
+            // Replace multiple spaces with space commands
+            const spacedContent = content.replace(/\s+/g, '\\ ');
+            return `\\text{${spacedContent}}`;
+        });
+    }
+
+    /**
+     * Process \tag commands in equations
+     */
+    private processEquationTags(text: string): string {
+        return text.replace(/\\tag\{([^}]+)\}/g, (_, tag) => {
+            return `\\tag{${tag}}`;
+        });
+    }
+
+    /**
+     * Handle \left. and \right. delimiters
+     */
+    private processDelimiters(text: string): string {
+        // Handle cases where \left. or \right. is used for alignment
+        text = text.replace(/\\left\.\s*([^\\]+)\\right([^.\s])/g, '$1\\right$2');
+        text = text.replace(/\\left([^.])\s*([^\\]+)\\right\./g, '\\left$1$2');
+        
+        // Handle cases where both \left. and \right. are used
+        text = text.replace(/\\left\.\s*([^\\]+)\\right\./g, '$1');
+
+        return text;
+    }
+
+    /**
+     * Process custom math operators and handle their limits and spacing
+     * Supports both predefined operators from MATH_OPERATORS and custom operators
+     * defined through \DeclareMathOperator
+     */
+    private processMathOperators(text: string): string {
+        for (const [name, config] of Object.entries(MATH_OPERATORS)) {
+            const pattern = new RegExp(`\\\\${name}\\s*(?:_(\\{[^}]+\\}|[^{\\s]+))?(?:\\^(\\{[^}]+\\}|[^{\\s]+))?`, 'g');
+            text = text.replace(pattern, (_, sub, sup) => {
+                const operator = (config as MathOperator).hasLimits ? `\\operatorname*{${name}}` : `\\operatorname{${name}}`;
+                if (sub && sup) {
+                    return `${operator}_{${sub}}^{${sup}}`;
+                }
+                if (sub) {
+                    return `${operator}_{${sub}}`;
+                }
+                if (sup) {
+                    return `${operator}^{${sup}}`;
+                }
+                return operator;
+            });
         }
 
-        // Step 5: Replace math delimiters
-        processedText = replaceMathDelimiters(processedText);
-
-        // Step 6: Clean up \left and \right if enabled
-        if (finalOptions.removeLeftRight) {
-            processedText = processedText.replace(/\\left\s*([({[])/g, '$1')
-                .replace(/\\right\s*([)}\]])/g, '$1');
+        for (const [name, operator] of this.operators) {
+            const pattern = new RegExp(`\\\\${name}`, 'g');
+            text = text.replace(pattern, `\\operatorname{${operator.definition}}`);
         }
 
-        // Step 7: Convert \text to \mathrm if enabled
-        if (finalOptions.unifyTextToMathrm) {
-            processedText = processedText.replace(/\\text\{([^}]*)\}/g, '\\mathrm{$1}');
+        return text;
+    }
+
+    /**
+     * Process custom commands with optional arguments
+     */
+    private processCustomCommands(text: string): string {
+        for (const [name, command] of this.customCommands) {
+            const pattern = new RegExp(
+                `\\\\${name}` +
+                (command.numArgs > 0 ? `(?:\\{[^}]*\\}){0,${command.numArgs}})`: ''),
+                'g'
+            );
+
+            text = text.replace(pattern, (...args) => {
+                const matches = args.slice(1, -2);
+                let result = command.definition;
+
+                if (command.optionalArg) {
+                    const optionalValue = matches[0] || command.optionalArg;
+                    result = result.replace('#1', optionalValue);
+                    matches.shift();
+                }
+
+                for (let i = 0; i < command.numArgs; i++) {
+                    result = result.replace(
+                        new RegExp(`#${i + 1}`, 'g'),
+                        matches[i] || ''
+                    );
+                }
+
+                return result;
+            });
+        }
+        return text;
+    }
+
+    /**
+     * Process math environments with proper Obsidian MathJax formatting
+     */
+    private processMathEnvironment(env: string, content: string, options: ParserOptions): string {
+        let processedContent = content;
+
+        // Handle specific environments
+        switch (env) {
+            case 'multline':
+            case 'multline*':
+                processedContent = this.processMultline(content);
+                break;
+            case 'gather':
+            case 'gather*':
+                processedContent = this.processGather(content);
+                break;
+            case 'split':
+                processedContent = this.processSplit(content);
+                break;
+            case 'array':
+                processedContent = this.processArray(content);
+                break;
+            case 'CD':
+                processedContent = this.processCommutativeDiagram(content);
+                break;
         }
 
-        return processedText;
-    } catch (error) {
-        logger.error('Error in LaTeX parser', error);
-        return text; // Return original text on critical error
+        // Handle numbering and labels
+        if (options.numberEquations) {
+            this.equationCounter++;
+            processedContent = `${processedContent} \\tag{${this.equationCounter}}`;
+        }
+
+        // Wrap in appropriate delimiters for Obsidian
+        return `$$ ${processedContent} $$`;
+    }
+
+    /**
+     * Process multline environment
+     */
+    private processMultline(content: string): string {
+        return content.split('\\\\')
+            .map((line, i, arr) => {
+                line = line.trim();
+                if (i === 0) {
+                  return line + '\\\\';
+                }
+                if (i === arr.length - 1) {
+                  return '\\quad'.repeat(2) + line;
+                }
+                return '\\quad' + line + '\\\\';
+            })
+            .join('\n');
+    }
+
+    /**
+     * Process gather environment
+     */
+    private processGather(content: string): string {
+        return '\\begin{gathered}\n' +
+            content.split('\\\\')
+                .map(line => line.trim())
+                .join('\\\\\n') +
+            '\n\\end{gathered}';
+    }
+
+    /**
+     * Process split environment
+     */
+    private processSplit(content: string): string {
+        return '\\begin{split}\n' +
+            content.split('\\\\')
+                .map(line => line.trim())
+                .join('\\\\\n') +
+            '\n\\end{split}';
+    }
+
+    /**
+     * Process array environment with column specifications
+     */
+    private processArray(content: string, colSpec: string = ''): string {
+        // Parse column specification
+        const colTypes = colSpec.split('').map(type => {
+            const columnType = ARRAY_COLUMN_TYPES[type as keyof typeof ARRAY_COLUMN_TYPES];
+            return columnType?.align || 'center';
+        });
+        
+        // Process content
+        const rows = content.split('\\\\').map(row => 
+            row.trim().split('&').map((cell, i) => {
+                const alignment = colTypes[i] || 'center';
+                return `\\${alignment}{${cell.trim()}}`;
+            }).join('&')
+        );
+
+        return '\\begin{array}{' + colSpec + '}\n' +
+            rows.join('\\\\\n') +
+            '\n\\end{array}';
+    }
+
+    /**
+     * Process commutative diagrams
+     */
+    private processCommutativeDiagram(content: string): string {
+        return '\\begin{CD}\n' + content + '\n\\end{CD}';
+    }
+
+    /**
+     * Process math operators with proper spacing and limits
+     */
+
+    /**
+     * Process math spacing commands
+     */
+    private processMathSpacing(text: string): string {
+        for (const [command, config] of Object.entries(MATH_SPACING)) {
+            const pattern = new RegExp(command.replace(/\\/g, '\\\\'), 'g');
+            text = text.replace(pattern, (config as SpacingCommand).obsidianCommand);
+        }
+        return text;
+    }
+
+    /**
+     * Process labels and references in math mode
+     */
+    private processLabelsAndRefs(text: string): string {
+        // Process \label commands
+        text = text.replace(/\\label\{([^}]+)\}/g, (_, label) => {
+            this.labelRefs.set(label, `${this.equationCounter}`);
+            return '';
+        });
+
+        // Process \ref and \eqref commands
+        text = text.replace(/\\(?:eq)?ref\{([^}]+)\}/g, (_, label) => {
+            const refNum = this.labelRefs.get(label);
+            if (refNum === undefined) {
+                console.warn(`Reference to undefined label: ${label}`);
+                return match;
+            }
+            return `\\text{(${refNum})}`;
+        });
+
+        return text;
+    }
+
+    /**
+     * Process special math commands and delimiters
+     */
+    private processSpecialCommands(text: string, options: ParserOptions): string {
+        // Process \tag commands with proper numbering
+        text = text.replace(/\\tag(?:\*?)\{([^}]+)\}/g, (_, tag) => {
+            if (options.direction === 'latex-to-obsidian') {
+                return `\\tag{${tag}}`;
+            } else {
+                return `\\tag{${tag}}`;
+            }
+        });
+
+        // Process \DeclareMathOperator with proper operator handling
+        text = text.replace(/\\DeclareMathOperator\*?\{\\([^}]+)\}\{([^}]+)\}/g, (match, name, definition) => {
+            if (options.direction === 'latex-to-obsidian') {
+                this.operators.set(name, { name, definition });
+                return '';
+            } else {
+                return match; // Preserve in LaTeX
+            }
+        });
+
+        // Process \newcommand with optional arguments
+        text = text.replace(/\\newcommand\{\\([^}]+)\}(?:\[\d+\])?(?:\[([^]]+)\])?\{([^}]+)\}/g, 
+            (match, name, numArgsStr, optionalArg, definition) => {
+                if (options.direction === 'latex-to-obsidian') {
+                    const numArgs = numArgsStr ? parseInt(numArgsStr) : 0;
+                    this.customCommands.set(name, {
+                        name,
+                        numArgs,
+                        optionalArg,
+                        definition
+                    });
+                    return '';
+                } else {
+                    return match; // Preserve in LaTeX
+                }
+            }
+        );
+
+        // Process \text command within math mode
+        text = text.replace(/\\text\{([^}]*)\}/g, (_, content) => {
+            const spacedContent = content.replace(/\s+/g, '\\ ');
+            if (options.direction === 'latex-to-obsidian') {
+                return `\\text{${spacedContent}}`;
+            } else {
+                return `\\text{${content}}`; // Preserve original spacing in LaTeX
+            }
+        });
+
+        // Handle \left. and \right. delimiters with improved matching
+        const leftRightPatterns = [
+            { pattern: /\\left\.\s*([^\\]+?)\\right([^.\s])/g, replace: '$1\\right$2' },
+            { pattern: /\\left([^.\s])\s*([^\\]+?)\\right\./g, replace: '\\left$1$2' },
+            { pattern: /\\left\.\s*([^\\]+?)\\right\./g, replace: '$1' },
+            // Handle nested delimiters
+            { pattern: /\\left\.\s*(\{[^}]+\})\\right\./g, replace: '$1' },
+            // Handle matrix delimiters
+            { pattern: /\\left\.\s*(\\begin\{[^}]+\}.*?\\end\{[^}]+\})\\right\./g, replace: '$1' }
+        ];
+
+        for (const { pattern, replace } of leftRightPatterns) {
+            text = text.replace(pattern, replace);
+        }
+
+        return text;
+    }
+
+    /**
+     * Check if position is within math mode
+     */
+    private isMathMode(text: string, pos: number): boolean {
+        let inMathMode = false;
+        let inDisplayMath = false;
+        let i = 0;
+
+        while (i < pos) {
+            // Check for escaped dollar signs
+            if (text[i] === '\\' && text[i + 1] === '$') {
+                i += 2;
+                continue;
+            }
+
+            // Check for display math ($$)
+            if (text[i] === '$' && text[i + 1] === '$' && (!inMathMode || inDisplayMath)) {
+                inMathMode = !inMathMode;
+                inDisplayMath = !inDisplayMath;
+                i += 2;
+                continue;
+            }
+
+            // Check for inline math ($)
+            if (text[i] === '$' && !inDisplayMath) {
+                inMathMode = !inMathMode;
+                i++;
+                continue;
+            }
+
+            i++;
+        }
+
+        return inMathMode;
+    }
+
+    /**
+     * Handle LaTeX tags
+     */
+    private handleTags(text: string): string {
+        return text.replace(/\\tag(?:\*?)\{([^}]+)\}/g, (match, tag) => {
+            // Handle both \tag and \tag* commands
+            const isNonumber = match.includes('tag*');
+            // Convert to MathJax compatible syntax
+            return isNonumber ? `\\tag*{${tag}}` : `\\tag{${tag}}`;
+        });
+    }
+
+    /**
+     * Process math content with tag support
+     */
+    private processMathContent(content: string, isDisplay: boolean): string {
+        // Process tags first
+        content = this.handleTags(content);
+        
+        // Additional math content processing
+        if (this.isMathMode(content, 0)) {
+            content = this.processMathCommands(content);
+        }
+
+        return content;
+    }
+
+    /**
+     * Process math commands
+     */
+    private processMathCommands(text: string): string {
+        // Process math operators and spacing
+        text = this.processMathOperators(text);
+        text = this.processMathSpacing(text);
+
+        // Process labels and references
+        text = this.processLabelsAndRefs(text);
+
+        return text;
+    }
+
+    /**
+     * Process equation numbers and labels
+     */
+    private processEquationNumbering(text: string): string {
+        // Track equation numbers and labels
+        let currentEquation = 0;
+        const labelMap = new Map<string, number>();
+
+        // Process labels and store equation numbers
+        text = text.replace(/\\label\{([^}]+)\}/g, (_, label) => {
+            currentEquation++;
+            labelMap.set(label, currentEquation);
+            return `\\tag{${currentEquation}}`;
+        });
+
+        // Replace references with equation numbers
+        text = text.replace(/\\(?:eq)?ref\{([^}]+)\}/g, (match, label) => {
+            const refNum = labelMap.get(label);
+            if (refNum === undefined) {
+                console.warn(`Reference to undefined label: ${label}`);
+                return match;
+            }
+            return `\\text{(${refNum})}`;
+        });
+
+        return text;
+    }
+
+    /**
+     * Process array environments with column specifications
+     */
+    private processArrayEnvironment(text: string): string {
+        return text.replace(/\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}/g, 
+            (_, colSpec, content) => {
+                // Parse column specification
+                const colTypes = this.parseColumnSpec(colSpec);
+                
+                // Process content according to column spec
+                const processedContent = this.processArrayContent(content, colTypes);
+                
+                return `\\begin{array}{${colSpec}}${processedContent}\\end{array}`;
+            }
+        );
+    }
+
+    /**
+     * Parse array column specification
+     */
+    private parseColumnSpec(spec: string): string[] {
+        const cols: string[] = [];
+        let i = 0;
+        while (i < spec.length) {
+            if (spec[i] === '|') {
+                cols.push('|');
+                i++;
+                continue;
+            }
+            if ('lcr'.includes(spec[i])) {
+                cols.push(spec[i]);
+                i++;
+                continue;
+            }
+            // Handle other column types like p{width}
+            if (spec[i] === 'p' && spec[i + 1] === '{') {
+                const end = spec.indexOf('}', i);
+                if (end !== -1) {
+                    cols.push(spec.slice(i, end + 1));
+                    i = end + 1;
+                    continue;
+                }
+            }
+            i++;
+        }
+        return cols;
+    }
+
+    /**
+     * Process array content according to column specification
+     */
+    private processArrayContent(content: string, cols: string[]): string {
+        // Split content into rows
+        const rows = content.split('\\\\').map(row => 
+            row.trim().split('&').map((cell, i) => {
+                const colType = cols[i] || 'c'; // Default to center alignment
+                return this.formatArrayCell(cell, colType);
+            }).join('&')
+        );
+
+        return rows.map(row => row + '\\\\').join('\n');
+    }
+
+    /**
+     * Format array cell according to column type
+     */
+    private formatArrayCell(content: string, colType: string): string {
+        switch (colType) {
+            case 'l':
+                return `\\text{${content}}`;
+            case 'r':
+                return `\\text{${content}}`;
+            case '|':
+                return '|';
+            default: // 'c' or other
+                return content;
+        }
+    }
+
+    /**
+     * Process all math environments in the text
+     */
+    private processEnvironments(text: string, options: ParserOptions = { direction: 'latex-to-obsidian' }): string {
+        const envPattern = /\\begin\{([^}]+)\}([\s\S]*?)\\end\{\1\}/g;
+        let result = text;
+        let match;
+
+        while ((match = envPattern.exec(text)) !== null) {
+            const [fullMatch, env, content] = match;
+            const processedContent = this.processMathEnvironment(env, content, options);
+            result = result.replace(fullMatch, processedContent);
+        }
+
+        return result;
+    }
+
+    public parseLatexToObsidian(text: string, options: ParserOptions = { direction: 'latex-to-obsidian' }): string {
+        try {
+            // Reset counters and maps
+            this.equationCounter = 0;
+            this.labelRefs.clear();
+            this.operators.clear();
+            this.customCommands.clear();
+
+            // Process special commands first
+            text = this.processSpecialCommands(text, options);
+
+            // Process math operators and spacing
+            text = this.processMathOperators(text);
+            text = this.processMathSpacing(text);
+
+            // Process environments
+            text = this.processEnvironments(text, options);
+
+            // Process labels and references
+            text = this.processLabelsAndRefs(text);
+
+            // Reset states
+            this.theoremParser.reset();
+            this.operators.clear();
+            this.customCommands.clear();
+
+            // Process math-related commands first
+            text = text.replace(
+                /\\DeclareMathOperator\{\\[^}]+\}\{[^}]+\}/g,
+                match => this.handleDeclareMathOperator(match)
+            );
+
+            text = text.replace(
+                /\\newcommand\{\\[^}]+\}(?:\[\d+\])?(?:\[([^]]+)\])?\{[^}]+\}/g,
+                match => this.handleNewCommand(match)
+            );
+
+            // Process theorem environments
+            text = this.handleNewTheorem(text);
+
+            // Update section numbers
+            const sectionPattern = /\\section\{([^}]+)\}/g;
+            let sectionNum = 0;
+            text = text.replace(sectionPattern, (match) => {
+                sectionNum++;
+                this.theoremParser.updateSection(sectionNum);
+                return match;
+            });
+
+            // Process math content
+            text = this.processDelimiters(text);
+            text = this.processTextInMath(text);
+            text = this.processEquationTags(text);
+            text = this.processMathOperators(text);
+            text = this.processCustomCommands(text);
+
+            // Set default options
+            const defaultOptions: Required<ParserOptions> = {
+                direction: 'latex-to-obsidian',
+                convertEnvironments: true,
+                extraEnvironments: [],
+                convertEqnarray: true,
+                removeLabels: false,
+                preserveLabels: false,
+                handleRefs: 'placeholder',
+                expandMacros: true,
+                convertCitations: true,
+                removeLeftRight: true,
+                unifyTextToMathrm: true,
+                numberEquations: this.obsidianConfig.previewMode // Use Obsidian config to determine if equations should be numbered
+            };
+
+            const finalOptions = { ...defaultOptions, ...options };
+            let processedText = text;
+
+            // Apply Obsidian-specific processing based on config
+            if (this.obsidianConfig.useCallouts) {
+                // Convert theorem environments to callouts if enabled
+                processedText = this.theoremParser.convertToCallouts(processedText);
+            }
+
+            // Step 1: Expand macros if enabled
+            if (finalOptions.expandMacros) {
+                processedText = expandMacros(processedText);
+            }
+
+            // Step 2: Handle environments
+            if (finalOptions.convertEnvironments) {
+                const envPattern = Object.keys(ENVIRONMENT_MAPPINGS)
+                    .concat(finalOptions.extraEnvironments)
+                    .join('|');
+                
+                processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
+            }
+
+            // Step 3: Handle labels and references
+            processedText = handleLabelsAndRefs(processedText, finalOptions);
+
+            // Step 4: Convert citations if enabled
+            if (finalOptions.convertCitations) {
+                processedText = convertCitations(processedText);
+            }
+
+            // Step 5: Replace math delimiters
+            processedText = replaceMathDelimiters(processedText);
+
+            // Step 6: Clean up \left and \right if enabled
+            if (finalOptions.removeLeftRight) {
+                processedText = processedText.replace(/\\left\s*([({[])/g, '$1')
+                    .replace(/\\right\s*([)}\]])/g, '$1');
+            }
+
+            // Step 7: Convert \text to \mathrm if enabled
+            if (finalOptions.unifyTextToMathrm) {
+                processedText = processedText.replace(/\\text\{([^}]*)\}/g, '\\mathrm{$1}');
+            }
+
+            // Step 8: Process equation numbering based on Obsidian config
+            if (finalOptions.numberEquations && this.obsidianConfig.previewMode) {
+                processedText = this.processEquationNumbering(processedText);
+            }
+
+            return processedText;
+        } catch (error) {
+            logger.error('Error in LaTeX parser', error);
+            return text;
+        }
+    }
+
+    public parseObsidianToLatex(text: string, options: ParserOptions = { direction: 'obsidian-to-latex' }): string {
+        try {
+            // Reset counters and maps
+            this.equationCounter = 0;
+            this.labelRefs.clear();
+            this.operators.clear();
+            this.customCommands.clear();
+
+            // Process special commands first
+            text = this.processSpecialCommands(text, options);
+
+            // Process math operators and spacing
+            text = this.processMathOperators(text);
+            text = this.processMathSpacing(text);
+
+            // Process environments
+            text = this.processEnvironments(text);
+
+            // Process labels and references
+            text = this.processLabelsAndRefs(text);
+
+            // Reset states
+            this.theoremParser.reset();
+            this.operators.clear();
+            this.customCommands.clear();
+
+            // Process math-related commands first
+            text = text.replace(
+                /\\DeclareMathOperator\{\\[^}]+\}\{[^}]+\}/g,
+                match => this.handleDeclareMathOperator(match)
+            );
+
+            text = text.replace(
+                /\\newcommand\{\\[^}]+\}(?:\[\d+\])?(?:\[([^]]+)\])?\{[^}]+\}/g,
+                match => this.handleNewCommand(match)
+            );
+
+            // Process theorem environments
+            text = this.handleNewTheorem(text);
+
+            // Update section numbers
+            const sectionPattern = /\\section\{([^}]+)\}/g;
+            let sectionNum = 0;
+            text = text.replace(sectionPattern, (match) => {
+                sectionNum++;
+                this.theoremParser.updateSection(sectionNum);
+                return match;
+            });
+
+            // Process math content
+            text = this.processDelimiters(text);
+            text = this.processTextInMath(text);
+            text = this.processEquationTags(text);
+            text = this.processMathOperators(text);
+            text = this.processCustomCommands(text);
+
+            // Set default options
+            const defaultOptions: Required<ParserOptions> = {
+                direction: 'obsidian-to-latex',
+                convertEnvironments: true,
+                extraEnvironments: [],
+                convertEqnarray: true,
+                removeLabels: false,
+                preserveLabels: false,
+                handleRefs: 'placeholder',
+                expandMacros: true,
+                convertCitations: true,
+                removeLeftRight: true,
+                unifyTextToMathrm: true,
+                numberEquations: false
+            };
+
+            const finalOptions = { ...defaultOptions, ...options };
+            let processedText = text;
+
+            // Step 1: Expand macros if enabled
+            if (finalOptions.expandMacros) {
+                processedText = expandMacros(processedText);
+            }
+
+            // Step 2: Handle environments
+            if (finalOptions.convertEnvironments) {
+                const envPattern = Object.keys(ENVIRONMENT_MAPPINGS)
+                    .concat(finalOptions.extraEnvironments)
+                    .join('|');
+                
+                processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
+            }
+
+            // Step 3: Handle labels and references
+            processedText = handleLabelsAndRefs(processedText, finalOptions);
+
+            // Step 4: Convert citations if enabled
+            if (finalOptions.convertCitations) {
+                processedText = convertCitations(processedText);
+            }
+
+            // Step 5: Replace math delimiters
+            processedText = replaceMathDelimiters(processedText);
+
+            // Step 6: Clean up \left and \right if enabled
+            if (finalOptions.removeLeftRight) {
+                processedText = processedText.replace(/\\left\s*([({[])/g, '$1')
+                    .replace(/\\right\s*([)}\]])/g, '$1');
+            }
+
+            // Step 7: Convert \text to \mathrm if enabled
+            if (finalOptions.unifyTextToMathrm) {
+                processedText = processedText.replace(/\\text\{([^}]*)\}/g, '\\mathrm{$1}');
+            }
+
+            // Step 8: Process equation numbering
+            if (finalOptions.numberEquations) {
+                processedText = this.processEquationNumbering(processedText);
+            }
+
+            return processedText;
+        } catch (error) {
+            logger.error('Error in LaTeX parser', error);
+            return text;
+        }
+    }
+
+    public parse(text: string, options: ParserOptions = { direction: 'latex-to-obsidian' }): string {
+        if (options.direction === 'latex-to-obsidian') {
+            return this.parseLatexToObsidian(text, options);
+        } else {
+            return this.parseObsidianToLatex(text, options);
+        }
+    }
+
+    /**
+     * Parse LaTeX content with error handling and recovery
+     */
+    public parseWithRecovery(content: string): string {
+        try {
+            // Attempt to fix common syntax errors before parsing
+            const preprocessed = ErrorRecovery.fixCommonSyntaxErrors(content);
+            return this.parse(preprocessed);
+        } catch (error) {
+            if (error instanceof DelimiterMismatchError) {
+                // Attempt to recover from delimiter mismatches
+                console.warn(`Attempting to recover from delimiter mismatch: ${error.message}`);
+                return ErrorRecovery.handleDelimiterMismatch(content, this.position, error.message);
+            } else if (error instanceof EnvironmentMismatchError) {
+                // Attempt to recover from environment mismatches
+                console.warn(`Attempting to recover from environment mismatch: ${error.message}`);
+                return ErrorRecovery.handleEnvironmentMismatch(content, this.position, error.message);
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    /**
+     * Parse an environment with validation
+     */
+    private parseEnvironment(content: string, startIndex: number): [string, number] {
+        const envMatch = content.slice(startIndex).match(/\\begin\{([^}]+)\}/);
+        if (!envMatch) {
+            throw new DelimiterMismatchError('\\begin{...}', null, startIndex);
+        }
+
+        const envName = envMatch[1];
+        
+        // Validate environment exists
+        if (!this.isValidEnvironment(envName)) {
+            throw new UnknownEnvironmentError(envName);
+        }
+
+        // Validate nesting
+        if (this.environmentStack.length > 0) {
+            const outerEnv = this.environmentStack[this.environmentStack.length - 1];
+            if (!ErrorRecovery.canNest(outerEnv, envName)) {
+                throw new InvalidNestingError(outerEnv, envName, startIndex);
+            }
+        }
+
+        this.environmentStack.push({ env: envName });
+        
+        // Find matching end
+        const endPattern = `\\end{${envName}}`;
+        const endIndex = content.indexOf(endPattern, startIndex);
+        if (endIndex === -1) {
+            throw new EnvironmentMismatchError(envName, null, startIndex);
+        }
+
+        // Process environment content
+        const envContent = content.slice(startIndex + envMatch[0].length, endIndex);
+        const processedContent = this.processEnvironmentContent(envName, envContent);
+
+        this.environmentStack.pop();
+        return [processedContent, endIndex + endPattern.length];
+    }
+
+    /**
+     * Process math delimiters with validation
+     */
+    private parseMathDelimiters(content: string, startIndex: number): [string, number] {
+        const delimiters = ['$$', '$'];
+        for (const delimiter of delimiters) {
+            if (content.startsWith(delimiter, startIndex)) {
+                const endIndex = content.indexOf(delimiter, startIndex + delimiter.length);
+                if (endIndex === -1) {
+                    throw new DelimiterMismatchError(delimiter, null, startIndex);
+                }
+                const mathContent = content.slice(startIndex + delimiter.length, endIndex);
+                return [this.processMathContent(mathContent, delimiter === '$$'), endIndex + delimiter.length];
+            }
+        }
+        return [content[startIndex], startIndex + 1];
+    }
+
+    /**
+     * Validate if an environment is defined
+     */
+    private isValidEnvironment(envName: string): boolean {
+        return envName in ENVIRONMENT_MAPPINGS || 
+               envName in MATH_ENVIRONMENTS || 
+               envName in THEOREM_MAPPINGS;
+    }
+
+    /**
+     * Process content of a single environment
+     */
+    private processEnvironmentContent(envName: string, content: string): string {
+        // Process the environment content based on its type
+        switch (envName.toLowerCase()) {
+            case 'equation':
+            case 'equation*':
+                return this.processMathEnvironment(envName, content, { direction: 'latex-to-obsidian' });
+            case 'align':
+            case 'align*':
+                return this.processMathEnvironment(envName, content, { direction: 'latex-to-obsidian' });
+            case 'gather':
+            case 'gather*':
+                return this.processGather(content);
+            case 'multline':
+            case 'multline*':
+                return this.processMultline(content);
+            case 'split':
+                return this.processSplit(content);
+            case 'array':
+                return this.processArray(content);
+            case 'cd': // For commutative diagrams
+                return this.processCommutativeDiagram(content);
+            default:
+                // For unknown environments, return the content as is
+                return content;
+        }
     }
 }
 
-export default parseLatexToObsidian;
+export default LatexParser;
