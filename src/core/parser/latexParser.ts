@@ -98,25 +98,17 @@ function convertEnvironmentToDisplay(env: string, content: string, options: Pars
 /*******************************************************
  * BRACKET REPLACEMENT HELPERS
  *******************************************************/
-function replaceMathDelimiters(text: string): string {
-    try {
-        let processedText = text;
 
-        // Handle display math delimiters
-        MATH_DELIMITERS.DISPLAY.forEach(([pattern, replacement]) => {
-            processedText = processedText.replace(pattern, replacement);
-        });
-
-        // Handle inline math delimiters
-        MATH_DELIMITERS.INLINE.forEach(([pattern, replacement]) => {
-            processedText = processedText.replace(pattern, replacement);
-        });
-
-        return processedText;
-    } catch (error) {
-        logger.error('Error replacing math delimiters:', error);
-        return text;
-    }
+function validateDelimiterPairs(text: string, pattern: RegExp, offset: number): boolean {
+    const beforeText = text.slice(0, offset);
+    const afterText = text.slice(offset + 1);
+    
+    // Count delimiters before and after the current position
+    const delimitersBefore = (beforeText.match(pattern) || []).length;
+    const delimitersAfter = (afterText.match(pattern) || []).length;
+    
+    // Delimiters should be paired (even count) in both directions
+    return delimitersBefore % 2 === 0 && delimitersAfter % 2 === 0;
 }
 
 /*******************************************************
@@ -270,7 +262,7 @@ function expandMacros(text: string): string {
         // Apply common predefined macros
         Object.entries(COMMON_MACROS).forEach(([macro, definition]) => {
             const macroRegex = new RegExp(macro.replace(/\\/g, '\\\\') + '(?![a-zA-Z])', 'g');
-            processedText = processedText.replace(macroRegex, (match, ...args) => {
+            processedText = processedText.replace(macroRegex, (_, ...args) => {
                 // Extract arguments based on numArgs
                 const macroArgs = args.slice(0, definition.numArgs);
                 // If the macro has an optional argument and it's provided
@@ -337,7 +329,7 @@ function convertCitations(text: string): string {
  *******************************************************/
 function replaceNestedEnvironments(text: string, envPattern: string, options: ParserOptions): string {
     try {
-        const envStack: Array<{ env: string; startIndex: number }> = [];
+        const envStack: Array<string> = [];
         let result = text;
         let offset = 0;
 
@@ -350,7 +342,7 @@ function replaceNestedEnvironments(text: string, envPattern: string, options: Pa
             if (command === 'begin') {
                 // Check nesting validity
                 if (envStack.length > 0) {
-                    const outerEnv = envStack[envStack.length - 1].env;
+                    const outerEnv = envStack[envStack.length - 1];
                     const validOuterEnv = isValidEnvironment(outerEnv);
                     const validInnerEnv = isValidEnvironment(env);
                     
@@ -359,21 +351,21 @@ function replaceNestedEnvironments(text: string, envPattern: string, options: Pa
                         logger.warning(ERROR_MESSAGES.NESTED_ERROR(outerEnv, env));
                     }
                 }
-                envStack.push({ env, startIndex: index + fullMatch.length });
+                envStack.push(env);
             } else {
                 const envInfo = envStack.pop();
-                if (!envInfo || envInfo.env !== env) {
+                if (!envInfo || envInfo !== env) {
                     logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(env));
                     continue;
                 }
                 
                 // Extract and convert the environment content
-                const content = result.slice(envInfo.startIndex, index);
+                const content = result.slice(envStack.length === 0 ? index + fullMatch.length : envStack[envStack.length - 1].length, index);
                 const converted = convertEnvironmentToDisplay(env, content, options);
                 
                 // Replace the entire environment (including begin/end tags) with the converted content
-                const fullEnv = result.slice(envInfo.startIndex - fullMatch.length, index + fullMatch.length);
-                result = result.slice(0, envInfo.startIndex - fullMatch.length) + converted + result.slice(index + fullMatch.length);
+                const fullEnv = result.slice(envStack.length === 0 ? index - fullMatch.length : envStack[envStack.length - 1].length, index + fullMatch.length);
+                result = result.slice(0, envStack.length === 0 ? index - fullMatch.length : envStack[envStack.length - 1].length) + converted + result.slice(index + fullMatch.length);
                 
                 // Update offset for subsequent replacements
                 offset += converted.length - fullEnv.length;
@@ -383,7 +375,7 @@ function replaceNestedEnvironments(text: string, envPattern: string, options: Pa
         // Check for unclosed environments
         if (envStack.length > 0) {
             envStack.forEach(info => {
-                logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(info.env));
+                logger.error(ERROR_MESSAGES.UNMATCHED_ENVIRONMENT(info));
             });
         }
 
@@ -437,7 +429,7 @@ export class LatexParser {
      * Handle \newcommand with optional arguments
      */
     private handleNewCommand(command: string): string {
-        const pattern = /\\newcommand\{\\([^}]+)\}(?:\[(\d+)\])?(?:\[([^]]+)\])?\{([^}]+)\}/;
+        const pattern = /\\newcommand\{\\([^}]+)\}(?:\[\d+\])?(?:\[([^]]+)\])?\{([^}]+)\}/;
         const match = command.match(pattern);
 
         if (!match) {
@@ -566,37 +558,30 @@ export class LatexParser {
      * Process math environments with proper Obsidian MathJax formatting
      */
     private processMathEnvironment(env: string, content: string, options: ParserOptions): string {
-        let processedContent = content;
+        // Extract potential array column specification
+        const arrayMatch = env.match(/array\{([^}]+)\}/);
+        if (arrayMatch) {
+            return this.processArray(content, '{' + arrayMatch[1] + '}');
+        }
 
-        // Handle specific environments
         switch (env) {
             case 'multline':
             case 'multline*':
-                processedContent = this.processMultline(content);
-                break;
+                return this.processMultline(content);
             case 'gather':
             case 'gather*':
-                processedContent = this.processGather(content);
-                break;
+                return this.processGather(content);
             case 'split':
-                processedContent = this.processSplit(content);
-                break;
-            case 'array':
-                processedContent = this.processArray(content);
-                break;
+                return this.processSplit(content);
             case 'CD':
-                processedContent = this.processCommutativeDiagram(content);
-                break;
+                return this.processCommutativeDiagram(content);
+            // Add array environment support
+            case 'array':
+                // If no column spec provided, default to centered alignment
+                return this.processArray(content, '{c}');
+            default:
+                return content;
         }
-
-        // Handle numbering and labels
-        if (options.numberEquations) {
-            this.equationCounter++;
-            processedContent = `${processedContent} \\tag{${this.equationCounter}}`;
-        }
-
-        // Wrap in appropriate delimiters for Obsidian
-        return `$$ ${processedContent} $$`;
     }
 
     /**
@@ -640,38 +625,11 @@ export class LatexParser {
     }
 
     /**
-     * Process array environment with column specifications
-     */
-    private processArray(content: string, colSpec: string = ''): string {
-        // Parse column specification
-        const colTypes = colSpec.split('').map(type => {
-            const columnType = ARRAY_COLUMN_TYPES[type as keyof typeof ARRAY_COLUMN_TYPES];
-            return columnType?.align || 'center';
-        });
-        
-        // Process content
-        const rows = content.split('\\\\').map(row => 
-            row.trim().split('&').map((cell, i) => {
-                const alignment = colTypes[i] || 'center';
-                return `\\${alignment}{${cell.trim()}}`;
-            }).join('&')
-        );
-
-        return '\\begin{array}{' + colSpec + '}\n' +
-            rows.join('\\\\\n') +
-            '\n\\end{array}';
-    }
-
-    /**
      * Process commutative diagrams
      */
     private processCommutativeDiagram(content: string): string {
         return '\\begin{CD}\n' + content + '\n\\end{CD}';
     }
-
-    /**
-     * Process math operators with proper spacing and limits
-     */
 
     /**
      * Process math spacing commands
@@ -695,7 +653,7 @@ export class LatexParser {
         });
 
         // Process \ref and \eqref commands
-        text = text.replace(/\\(?:eq)?ref\{([^}]+)\}/g, (_, label) => {
+        text = text.replace(/\\(?:eq)?ref\{([^}]+)\}/g, (match, label) => {
             const refNum = this.labelRefs.get(label);
             if (refNum === undefined) {
                 console.warn(`Reference to undefined label: ${label}`);
@@ -777,171 +735,31 @@ export class LatexParser {
     }
 
     /**
-     * Check if position is within math mode
+     * Process array environment with column alignment
      */
-    private isMathMode(text: string, pos: number): boolean {
-        let inMathMode = false;
-        let inDisplayMath = false;
-        let i = 0;
-
-        while (i < pos) {
-            // Check for escaped dollar signs
-            if (text[i] === '\\' && text[i + 1] === '$') {
-                i += 2;
-                continue;
-            }
-
-            // Check for display math ($$)
-            if (text[i] === '$' && text[i + 1] === '$' && (!inMathMode || inDisplayMath)) {
-                inMathMode = !inMathMode;
-                inDisplayMath = !inDisplayMath;
-                i += 2;
-                continue;
-            }
-
-            // Check for inline math ($)
-            if (text[i] === '$' && !inDisplayMath) {
-                inMathMode = !inMathMode;
-                i++;
-                continue;
-            }
-
-            i++;
-        }
-
-        return inMathMode;
-    }
-
-    /**
-     * Handle LaTeX tags
-     */
-    private handleTags(text: string): string {
-        return text.replace(/\\tag(?:\*?)\{([^}]+)\}/g, (match, tag) => {
-            // Handle both \tag and \tag* commands
-            const isNonumber = match.includes('tag*');
-            // Convert to MathJax compatible syntax
-            return isNonumber ? `\\tag*{${tag}}` : `\\tag{${tag}}`;
-        });
-    }
-
-    /**
-     * Process math content with tag support
-     */
-    private processMathContent(content: string, isDisplay: boolean): string {
-        // Process tags first
-        content = this.handleTags(content);
+    private processArray(content: string, colSpec: string): string {
+        // Split the content into rows
+        const rows = content.split('\\\\').map(row => row.trim());
         
-        // Additional math content processing
-        if (this.isMathMode(content, 0)) {
-            content = this.processMathCommands(content);
-        }
-
-        return content;
-    }
-
-    /**
-     * Process math commands
-     */
-    private processMathCommands(text: string): string {
-        // Process math operators and spacing
-        text = this.processMathOperators(text);
-        text = this.processMathSpacing(text);
-
-        // Process labels and references
-        text = this.processLabelsAndRefs(text);
-
-        return text;
-    }
-
-    /**
-     * Process equation numbers and labels
-     */
-    private processEquationNumbering(text: string): string {
-        // Track equation numbers and labels
-        let currentEquation = 0;
-        const labelMap = new Map<string, number>();
-
-        // Process labels and store equation numbers
-        text = text.replace(/\\label\{([^}]+)\}/g, (_, label) => {
-            currentEquation++;
-            labelMap.set(label, currentEquation);
-            return `\\tag{${currentEquation}}`;
+        // Get column types from colSpec (e.g., '{lcr}' -> ['l', 'c', 'r'])
+        const colTypes = colSpec.replace(/[{}]/g, '').split('');
+        
+        // Process each row
+        const processedRows = rows.map(row => {
+            // Split row into cells by & and process each cell
+            const cells = row.split('&').map((cell, index) => {
+                const colType = colTypes[index] || 'c'; // Default to center if no alignment specified
+                return this.formatArrayCell(cell.trim(), colType);
+            });
+            
+            // Join cells back with alignment
+            return cells.join(' & ');
         });
-
-        // Replace references with equation numbers
-        text = text.replace(/\\(?:eq)?ref\{([^}]+)\}/g, (match, label) => {
-            const refNum = labelMap.get(label);
-            if (refNum === undefined) {
-                console.warn(`Reference to undefined label: ${label}`);
-                return match;
-            }
-            return `\\text{(${refNum})}`;
-        });
-
-        return text;
-    }
-
-    /**
-     * Process array environments with column specifications
-     */
-    private processArrayEnvironment(text: string): string {
-        return text.replace(/\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}/g, 
-            (_, colSpec, content) => {
-                // Parse column specification
-                const colTypes = this.parseColumnSpec(colSpec);
-                
-                // Process content according to column spec
-                const processedContent = this.processArrayContent(content, colTypes);
-                
-                return `\\begin{array}{${colSpec}}${processedContent}\\end{array}`;
-            }
-        );
-    }
-
-    /**
-     * Parse array column specification
-     */
-    private parseColumnSpec(spec: string): string[] {
-        const cols: string[] = [];
-        let i = 0;
-        while (i < spec.length) {
-            if (spec[i] === '|') {
-                cols.push('|');
-                i++;
-                continue;
-            }
-            if ('lcr'.includes(spec[i])) {
-                cols.push(spec[i]);
-                i++;
-                continue;
-            }
-            // Handle other column types like p{width}
-            if (spec[i] === 'p' && spec[i + 1] === '{') {
-                const end = spec.indexOf('}', i);
-                if (end !== -1) {
-                    cols.push(spec.slice(i, end + 1));
-                    i = end + 1;
-                    continue;
-                }
-            }
-            i++;
-        }
-        return cols;
-    }
-
-    /**
-     * Process array content according to column specification
-     */
-    private processArrayContent(content: string, cols: string[]): string {
-        // Split content into rows
-        const rows = content.split('\\\\').map(row => 
-            row.trim().split('&').map((cell, i) => {
-                const colType = cols[i] || 'c'; // Default to center alignment
-                return this.formatArrayCell(cell, colType);
-            }).join('&')
-        );
-
-        return rows.map(row => row + '\\\\').join('\n');
+        
+        // Join rows and wrap in array environment
+        return '\\begin{array}' + colSpec + '\n' + 
+               processedRows.join(' \\\\\n') + 
+               '\n\\end{array}';
     }
 
     /**
@@ -964,17 +782,69 @@ export class LatexParser {
      * Process all math environments in the text
      */
     private processEnvironments(text: string, options: ParserOptions = { direction: 'latex-to-obsidian' }): string {
-        const envPattern = /\\begin\{([^}]+)\}([\s\S]*?)\\end\{\1\}/g;
         let result = text;
-        let match;
+        let currentIndex = 0;
 
-        while ((match = envPattern.exec(text)) !== null) {
-            const [fullMatch, env, content] = match;
-            const processedContent = this.processMathEnvironment(env, content, options);
-            result = result.replace(fullMatch, processedContent);
+        while (currentIndex < text.length) {
+            try {
+                const [processedContent, nextIndex] = this.parseEnvironment(text, currentIndex);
+                if (processedContent) {
+                    const envMatch = processedContent.match(/\\begin\{([^}]+)\}([\s\S]*?)\\end\{\1\}/);
+                    if (envMatch) {
+                        const [fullMatch, env, content] = envMatch;
+                        const processedMathContent = this.processMathEnvironment(env, content, options);
+                        result = result.replace(fullMatch, processedMathContent);
+                    }
+                }
+                currentIndex = nextIndex;
+            } catch (error) {
+                // If there's an error parsing the environment, move to the next character
+                currentIndex++;
+            }
         }
 
         return result;
+    }
+
+    /**
+     * Process equation numbering for displayed equations
+     * @param text The text to process
+     * @returns The processed text with equation numbers
+     */
+    private processEquationNumbering(text: string): string {
+        // Reset equation counter if needed
+        if (this.equationCounter === 0) {
+            this.equationCounter = 1;
+        }
+
+        // Add equation numbers to displayed equations that don't have a \notag or \nonumber command
+        return text.replace(/\\begin\{(equation|align|gather|eqnarray)\*?\}([\s\S]*?)\\end\{\1\*?\}/g, 
+            (match, environment, content) => {
+                // Skip numbering for starred environments
+                if (match.includes('*')) {
+                    return match;
+                }
+
+                // Skip if \notag or \nonumber is present
+                if (content.includes('\\notag') || content.includes('\\nonumber')) {
+                    return match;
+                }
+
+                // Add equation number
+                const eqNum = `\\tag{${this.equationCounter++}}`;
+                const lastNewline = content.lastIndexOf('\n');
+                
+                if (lastNewline === -1) {
+                    // Single line equation
+                    return `\\begin{${environment}}${content} ${eqNum}\\end{${environment}}`;
+                } else {
+                    // Multi-line equation - add number to last line
+                    const beforeLastLine = content.slice(0, lastNewline);
+                    const lastLine = content.slice(lastNewline);
+                    return `\\begin{${environment}}${beforeLastLine}${lastLine} ${eqNum}\\end{${environment}}`;
+                }
+            }
+        );
     }
 
     public parseLatexToObsidian(text: string, options: ParserOptions = { direction: 'latex-to-obsidian' }): string {
@@ -1055,12 +925,12 @@ export class LatexParser {
             // Apply Obsidian-specific processing based on config
             if (this.obsidianConfig.useCallouts) {
                 // Convert theorem environments to callouts if enabled
-                processedText = this.theoremParser.convertToCallouts(processedText);
+                processedText = this.theoremParser.processTheorems(processedText);
             }
 
             // Step 1: Expand macros if enabled
             if (finalOptions.expandMacros) {
-                processedText = expandMacros(processedText);
+                processedText = this.expandMacros(processedText);
             }
 
             // Step 2: Handle environments
@@ -1069,19 +939,20 @@ export class LatexParser {
                     .concat(finalOptions.extraEnvironments)
                     .join('|');
                 
-                processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
+                processedText = this.replaceNestedEnvironments(processedText, envPattern, finalOptions);
             }
 
             // Step 3: Handle labels and references
-            processedText = handleLabelsAndRefs(processedText, finalOptions);
+            processedText = this.handleLabelsAndRefs(processedText, finalOptions);
 
             // Step 4: Convert citations if enabled
             if (finalOptions.convertCitations) {
-                processedText = convertCitations(processedText);
+                processedText = this.convertCitations(processedText);
             }
 
             // Step 5: Replace math delimiters
-            processedText = replaceMathDelimiters(processedText);
+            const mathDelimiterResult = this.replaceMathDelimiters(processedText);
+            processedText = Array.isArray(mathDelimiterResult) ? mathDelimiterResult[0] : mathDelimiterResult;
 
             // Step 6: Clean up \left and \right if enabled
             if (finalOptions.removeLeftRight) {
@@ -1183,7 +1054,7 @@ export class LatexParser {
 
             // Step 1: Expand macros if enabled
             if (finalOptions.expandMacros) {
-                processedText = expandMacros(processedText);
+                processedText = this.expandMacros(processedText);
             }
 
             // Step 2: Handle environments
@@ -1192,19 +1063,20 @@ export class LatexParser {
                     .concat(finalOptions.extraEnvironments)
                     .join('|');
                 
-                processedText = replaceNestedEnvironments(processedText, envPattern, finalOptions);
+                processedText = this.replaceNestedEnvironments(processedText, envPattern, finalOptions);
             }
 
             // Step 3: Handle labels and references
-            processedText = handleLabelsAndRefs(processedText, finalOptions);
+            processedText = this.handleLabelsAndRefs(processedText, finalOptions);
 
             // Step 4: Convert citations if enabled
             if (finalOptions.convertCitations) {
-                processedText = convertCitations(processedText);
+                processedText = this.convertCitations(processedText);
             }
 
             // Step 5: Replace math delimiters
-            processedText = replaceMathDelimiters(processedText);
+            const mathDelimiterResult = this.replaceMathDelimiters(processedText);
+            processedText = Array.isArray(mathDelimiterResult) ? mathDelimiterResult[0] : mathDelimiterResult;
 
             // Step 6: Clean up \left and \right if enabled
             if (finalOptions.removeLeftRight) {
@@ -1261,6 +1133,28 @@ export class LatexParser {
     }
 
     /**
+     * Process math content and apply appropriate delimiters
+     * @param content The math content to process
+     * @param isDisplay Whether this is display math (true) or inline math (false)
+     * @returns The processed math content with appropriate delimiters
+     */
+    private processMathContent(content: string, isDisplay: boolean = false): string {
+        // Apply any necessary math content processing
+        let processedContent = content;
+        
+        // Process special commands if any
+        processedContent = this.processSpecialCommands(processedContent, { direction: 'latex-to-obsidian' });
+        
+        // Process math operators
+        processedContent = this.processMathOperators(processedContent);
+        
+        // Process custom commands
+        processedContent = this.processCustomCommands(processedContent);
+        
+        return processedContent;
+    }
+
+    /**
      * Parse an environment with validation
      */
     private parseEnvironment(content: string, startIndex: number): [string, number] {
@@ -1284,7 +1178,7 @@ export class LatexParser {
             }
         }
 
-        this.environmentStack.push({ env: envName });
+        this.environmentStack.push(envName);
         
         // Find matching end
         const endPattern = `\\end{${envName}}`;
@@ -1299,24 +1193,6 @@ export class LatexParser {
 
         this.environmentStack.pop();
         return [processedContent, endIndex + endPattern.length];
-    }
-
-    /**
-     * Process math delimiters with validation
-     */
-    private parseMathDelimiters(content: string, startIndex: number): [string, number] {
-        const delimiters = ['$$', '$'];
-        for (const delimiter of delimiters) {
-            if (content.startsWith(delimiter, startIndex)) {
-                const endIndex = content.indexOf(delimiter, startIndex + delimiter.length);
-                if (endIndex === -1) {
-                    throw new DelimiterMismatchError(delimiter, null, startIndex);
-                }
-                const mathContent = content.slice(startIndex + delimiter.length, endIndex);
-                return [this.processMathContent(mathContent, delimiter === '$$'), endIndex + delimiter.length];
-            }
-        }
-        return [content[startIndex], startIndex + 1];
     }
 
     /**
@@ -1348,9 +1224,7 @@ export class LatexParser {
                 return this.processMultline(content);
             case 'split':
                 return this.processSplit(content);
-            case 'array':
-                return this.processArray(content);
-            case 'cd': // For commutative diagrams
+            case 'CD':
                 return this.processCommutativeDiagram(content);
             default:
                 // For unknown environments, return the content as is
