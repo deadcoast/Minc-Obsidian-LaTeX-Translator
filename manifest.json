@@ -8,6 +8,7 @@
 	"authorUrl": "https://github.com/deadcoast/Minc-Obsidian-LaTeX-Translator",
 	"fundingUrl": "https://github.com/deadcoast",
 	"isDesktopOnly": false,
+	"main": "dist/src/main.js",
 	"commands": [
 		{
 			"id": "open-latex-translator",

@@ -3,7 +3,6 @@ import {
     Editor, 
     MarkdownView, 
     Plugin, 
-    PluginSettingTab, 
     Setting, 
     WorkspaceLeaf, 
     Notice, 
@@ -15,8 +14,8 @@ import {
     TFolder,
     Modal
 } from 'obsidian';
-import LatexTranslatorSettingTab from './ui/settings/LatexTranslatorSettingTab';
-import LatexParser from './core/parser/latexParser';
+import LatexTranslatorSettingTab from '@ui/ui_settings/LatexTranslatorSettingTab';
+import LatexParser from '@core/parser/latexParser';
 import { LatexView, LATEX_VIEW_TYPE } from '@views/LatexView';
 import { parseLatexToObsidian } from '@core/parser/latexParser';
 import { logger } from '@utils/logger';

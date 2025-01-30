@@ -1,4 +1,4 @@
-import { TheoremEnvironment, THEOREM_MAPPINGS } from './environments';
+import { TheoremEnvironment, THEOREM_MAPPINGS } from '../config/environments';
 import { logger } from '../../utils/logger';
 
 interface TheoremState {

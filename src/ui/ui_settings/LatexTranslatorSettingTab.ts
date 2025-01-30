@@ -22,9 +22,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Render Immediately')
             .setDesc('Automatically render math preview when editing')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.renderImmediately)
+                .setValue(this.plugin.getSettings().renderImmediately)
                 .onChange(async (value) => {
-                    this.plugin.settings.renderImmediately = value;
+                    const settings = this.plugin.getSettings();
+                    settings.renderImmediately = value;
+                    this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
 
@@ -32,9 +34,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Use Callouts')
             .setDesc('Convert theorem environments to Obsidian callouts')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.useCallouts)
+                .setValue(this.plugin.getSettings().useCallouts)
                 .onChange(async (value) => {
-                    this.plugin.settings.useCallouts = value;
+                    const settings = this.plugin.getSettings();
+                    settings.useCallouts = value;
+                    this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
 
@@ -45,9 +49,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Auto-Number Equations')
             .setDesc('Automatically number equations when converting from LaTeX')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autoNumberEquations)
+                .setValue(this.plugin.getSettings().autoNumberEquations)
                 .onChange(async (value) => {
-                    this.plugin.settings.autoNumberEquations = value;
+                    const settings = this.plugin.getSettings();
+                    settings.autoNumberEquations = value;
+                    this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
 
@@ -55,9 +61,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Preserve Labels')
             .setDesc('Keep LaTeX labels for cross-referencing')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.preserveLabels)
+                .setValue(this.plugin.getSettings().preserveLabels)
                 .onChange(async (value) => {
-                    this.plugin.settings.preserveLabels = value;
+                    const settings = this.plugin.getSettings();
+                    settings.preserveLabels = value;
+                    this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
     }

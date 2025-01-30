@@ -24,6 +24,8 @@ const context = await esbuild.context({
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
   outfile: 'main.js',
+  jsx: 'automatic',
+  jsxImportSource: 'react',
   plugins: [
     {
       name: 'alias-path',

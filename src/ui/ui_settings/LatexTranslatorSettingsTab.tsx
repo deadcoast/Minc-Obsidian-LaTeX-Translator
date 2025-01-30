@@ -11,7 +11,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
     constructor(app: App, plugin: LatexTranslatorPlugin) {
         super(app, plugin);
         this.plugin = plugin;
-        this.settings = plugin.settings;
+        this.settings = plugin.getSettings();
     }
 
     display(): void {

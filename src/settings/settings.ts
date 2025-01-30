@@ -1,6 +1,28 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import LatexTranslatorPlugin from '../../main';
+import { LatexTranslatorPlugin } from '../main';
 import { ParserOptions } from '../core/parser/latexParser';
+
+// LatexTranslatorSettings.ts
+
+// Import necessary modules or types if required
+// import { ... } from '...';
+
+export interface BatchOperationSettings {
+  recursive: boolean; // Renamed from defaultRecursive
+  skipExisting: boolean; // Renamed from defaultSkipExisting
+  createBackups: boolean; // Renamed from defaultCreateBackups
+  notifyOnCompletion: boolean; // Renamed from defaultNotifyOnCompletion
+  errorThreshold: number; // Renamed from defaultErrorThreshold
+  autoSaveErrorReports: boolean;
+  errorReportLocation: string;
+  maxConcurrentFiles: number;
+  processDelay: number; // Delay between files in ms
+  hotkeys: {
+    openBatchModal: string;
+    quickBatchCurrentFolder: string;
+    quickBatchVault: string;
+  };
+}
 
 export interface LatexTranslatorSettings {
   direction: 'latex-to-obsidian' | 'obsidian-to-latex';
@@ -24,7 +46,7 @@ export interface LatexTranslatorSettings {
 
   labelAndReference: {
     removeLabels: boolean;
-    referenceHandling: 'ignore' | 'placeholder' | 'autoNumber';
+    referenceHandling: 'ignore' | 'placeholder' | 'autoNumber' | 'text';
     customReferenceFormats: Record<string, string>;
     autoNumbering: {
       startEquation: number;
@@ -49,32 +71,32 @@ export interface LatexTranslatorSettings {
 
   uiSettings: {
     enablePreviewPanel: boolean;
-    previewPanelPosition: 'right' | 'bottom';
-    autoUpdatePreview: boolean;
-    previewDelay: number;
-    previewTheme: 'auto' | 'light' | 'dark';
-    previewFontSize: number;
-    previewLineNumbers: boolean;
-    previewSyncScroll: boolean;
-    previewShowDiff: boolean;
+    previewPanelPosition?: 'right' | 'bottom';
+    autoUpdatePreview?: boolean;
+    previewDelay?: number;
+    previewTheme?: 'auto' | 'light' | 'dark';
+    previewFontSize?: number;
+    previewLineNumbers?: boolean;
+    previewSyncScroll?: boolean;
+    previewShowDiff?: boolean;
 
-    showErrorNotifications: boolean;
-    showWarningNotifications: boolean;
-    inlineErrorHighlighting: boolean;
-    errorHighlightStyle: 'underline' | 'background' | 'gutter' | 'squiggly' | 'border' | 'side-border';
-    errorHighlightColor: 'red' | 'orange' | 'yellow';
-    errorNotificationDuration: number;
-    errorGrouping: 'none' | 'type' | 'location';
-    errorMinSeverity: 'info' | 'warning' | 'error';
+    showErrorNotifications?: boolean;
+    showWarningNotifications?: boolean;
+    inlineErrorHighlighting?: boolean;
+    errorHighlightStyle?: 'underline' | 'background' | 'gutter' | 'squiggly' | 'border' | 'side-border';
+    errorHighlightColor?: 'red' | 'orange' | 'yellow';
+    errorNotificationDuration?: number;
+    errorGrouping?: 'none' | 'type' | 'location';
+    errorMinSeverity?: 'info' | 'warning' | 'error';
 
-    showConversionLogs: boolean;
-    logDetailLevel: 'basic' | 'detailed' | 'debug' | 'trace' | 'diagnostic';
-    maxLogEntries: number;
-    autoExpandLogEntries: boolean;
-    logRetentionDays: number;
-    logExportFormat: 'text' | 'json' | 'csv';
-    logSearchEnabled: boolean;
-    logFilterPresets: {
+    showConversionLogs?: boolean;
+    logDetailLevel?: 'basic' | 'detailed' | 'debug' | 'trace' | 'diagnostic';
+    maxLogEntries?: number;
+    autoExpandLogEntries?: boolean;
+    logRetentionDays?: number;
+    logExportFormat?: 'text' | 'json' | 'csv';
+    logSearchEnabled?: boolean;
+    logFilterPresets?: {
       name: string;
       filter: {
         types?: string[];
@@ -84,33 +106,33 @@ export interface LatexTranslatorSettings {
       };
     }[];
 
-    showProgressBar: boolean;
-    showStatusBarInfo: boolean;
-    showCommandCount: boolean;
-    minimumBatchSize: number;
-    progressBarStyle: 'minimal' | 'detailed' | 'circular';
-    progressBarPosition: 'notice' | 'status' | 'floating';
-    progressBarTheme: 'default' | 'colorful' | 'monochrome';
-    showEstimatedTime: boolean;
-    showOperationDetails: boolean;
-    batchProgressStrategy: 'count' | 'size' | 'complexity';
+    showProgressBar?: boolean;
+    showStatusBarInfo?: boolean;
+    showCommandCount?: boolean;
+    minimumBatchSize?: number;
+    progressBarStyle?: 'minimal' | 'detailed' | 'circular';
+    progressBarPosition?: 'notice' | 'status' | 'floating';
+    progressBarTheme?: 'default' | 'colorful' | 'monochrome';
+    showEstimatedTime?: boolean;
+    showOperationDetails?: boolean;
+    batchProgressStrategy?: 'count' | 'size' | 'complexity';
 
-    enableProgressAnimations: boolean;
-    progressAnimationStyle: 'none' | 'pulse' | 'bounce' | 'slide' | 'fade' | 'rainbow';
-    progressAnimationSpeed: 'slow' | 'normal' | 'fast';
-    enableProgressGlow: boolean;
-    showProgressSpinner: boolean;
-    useProgressGradients: boolean;
-    progressCompletionEffect: 'none' | 'confetti' | 'fade' | 'zoom';
+    enableProgressAnimations?: boolean;
+    progressAnimationStyle?: 'none' | 'pulse' | 'bounce' | 'slide' | 'fade' | 'rainbow';
+    progressAnimationSpeed?: 'slow' | 'normal' | 'fast';
+    enableProgressGlow?: boolean;
+    showProgressSpinner?: boolean;
+    useProgressGradients?: boolean;
+    progressCompletionEffect?: 'none' | 'confetti' | 'fade' | 'zoom';
 
-    enableCustomErrorPatterns: boolean;
-    errorPatternStyle: 'none' | 'dotted' | 'dashed' | 'double' | 'zigzag' | 'striped';
-    errorBackgroundOpacity: number;
-    showErrorIcons: boolean;
-    errorIconPosition: 'left' | 'right' | 'both';
-    errorLineHighlight: boolean;
-    errorMarginMarkers: boolean;
-    customErrorColors: {
+    enableCustomErrorPatterns?: boolean;
+    errorPatternStyle?: 'none' | 'dotted' | 'dashed' | 'double' | 'zigzag' | 'striped';
+    errorBackgroundOpacity?: number;
+    showErrorIcons?: boolean;
+    errorIconPosition?: 'left' | 'right' | 'both';
+    errorLineHighlight?: boolean;
+    errorMarginMarkers?: boolean;
+    customErrorColors?: {
       syntax: string;
       semantic: string;
       style: string;
@@ -118,23 +140,23 @@ export interface LatexTranslatorSettings {
       info: string;
     };
 
-    enablePreviewFeatures: boolean;
-    previewSplitView: boolean;
-    previewSyncHighlight: boolean;
-    previewAutoScroll: boolean;
-    previewSearchHighlight: boolean;
-    previewCodeFolding: boolean;
-    previewMinimap: boolean;
-    previewWordWrap: boolean;
-    previewLineHeight: number;
-    previewFontFamily: string;
-    customPreviewStyles: {
+    enablePreviewFeatures?: boolean;
+    previewSplitView?: boolean;
+    previewSyncHighlight?: boolean;
+    previewAutoScroll?: boolean;
+    previewSearchHighlight?: boolean;
+    previewCodeFolding?: boolean;
+    previewMinimap?: boolean;
+    previewWordWrap?: boolean;
+    previewLineHeight?: number;
+    previewFontFamily?: string;
+    customPreviewStyles?: {
       enabled: boolean;
       css: string;
     };
 
-    enableAdvancedLogging: boolean;
-    logCategories: {
+    enableAdvancedLogging?: boolean;
+    logCategories?: {
       system: boolean;
       conversion: boolean;
       error: boolean;
@@ -142,11 +164,11 @@ export interface LatexTranslatorSettings {
       info: boolean;
       debug: boolean;
     };
-    logTimestampFormat: 'none' | 'simple' | 'detailed' | 'relative';
-    logColorCoding: boolean;
-    logCollapsibleGroups: boolean;
-    logSearchHistory: boolean;
-    logFilterRules: {
+    logTimestampFormat?: 'none' | 'simple' | 'detailed' | 'relative';
+    logColorCoding?: boolean;
+    logCollapsibleGroups?: boolean;
+    logSearchHistory?: boolean;
+    logFilterRules?: {
       enabled: boolean;
       rules: Array<{
         field: string;
@@ -155,15 +177,15 @@ export interface LatexTranslatorSettings {
         active: boolean;
       }>;
     };
-    logExportOptions: {
+    logExportOptions?: {
       includeMetadata: boolean;
       formatOutput: boolean;
       includeTimestamps: boolean;
       includeStackTraces: boolean;
     };
 
-    enableAdvancedProgressEffects: boolean;
-    progressCompletionEffects: {
+    enableAdvancedProgressEffects?: boolean;
+    progressCompletionEffects?: {
       confetti: boolean;
       sound: boolean;
       vibration: boolean;
@@ -172,13 +194,13 @@ export interface LatexTranslatorSettings {
       sparkles: boolean;
       checkmark: boolean;
     };
-    progressEffectStyle: 'minimal' | 'moderate' | 'elaborate';
-    progressSoundEffect: 'none' | 'ding' | 'chime' | 'success' | 'custom';
-    customProgressSound: string;
-    progressVibrationPattern: number[];
-    progressNotificationDuration: number;
-    progressAnimationSequence: ('fade' | 'scale' | 'slide' | 'spin')[];
-    progressParticleEffects: {
+    progressEffectStyle?: 'minimal' | 'moderate' | 'elaborate';
+    progressSoundEffect?: 'none' | 'ding' | 'chime' | 'success' | 'custom';
+    customProgressSound?: string;
+    progressVibrationPattern?: number[];
+    progressNotificationDuration?: number;
+    progressAnimationSequence?: ('fade' | 'scale' | 'slide' | 'spin')[];
+    progressParticleEffects?: {
       enabled: boolean;
       density: number;
       speed: number;
@@ -204,8 +226,8 @@ export interface LatexTranslatorSettings {
       particleTrailOpacity?: number;
     };
 
-    enableAdvancedErrorVisualization: boolean;
-    errorVisualizationStyles: {
+    enableAdvancedErrorVisualization?: boolean;
+    errorVisualizationStyles?: {
       pulsingBackground: boolean;
       gradientUnderline: boolean;
       errorBadges: boolean;
@@ -215,22 +237,22 @@ export interface LatexTranslatorSettings {
       smartGrouping: boolean;
       errorDensityMap: boolean;
     };
-    errorBadgePosition: 'inline' | 'margin' | 'floating';
-    errorPreviewTrigger: 'hover' | 'click' | 'auto';
-    errorDiagnosticsDisplay: 'tooltip' | 'panel' | 'inline';
-    errorGroupingStrategy: 'type' | 'severity' | 'location' | 'custom';
-    customErrorStyles: {
+    errorBadgePosition?: 'inline' | 'margin' | 'floating';
+    errorPreviewTrigger?: 'hover' | 'click' | 'auto';
+    errorDiagnosticsDisplay?: 'tooltip' | 'panel' | 'inline';
+    errorGroupingStrategy?: 'type' | 'severity' | 'location' | 'custom';
+    customErrorStyles?: {
       enabled: boolean;
       css: string;
     };
-    errorAnimationEffects: {
+    errorAnimationEffects?: {
       enabled: boolean;
       duration: number;
       style: 'flash' | 'bounce' | 'shake' | 'custom';
     };
 
-    enableEnhancedPreview: boolean;
-    previewEnhancements: {
+    enableEnhancedPreview?: boolean;
+    previewEnhancements?: {
       sideBySideDiff: boolean;
       inlineComments: boolean;
       syntaxHighlighting: boolean;
@@ -240,21 +262,21 @@ export interface LatexTranslatorSettings {
       codeBlocks: boolean;
       documentOutline: boolean;
     };
-    previewInteractivity: {
+    previewInteractivity?: {
       enabled: boolean;
       clickableLinks: boolean;
       editableBlocks: boolean;
       dragAndDrop: boolean;
       contextMenu: boolean;
     };
-    previewAutoFormatting: {
+    previewAutoFormatting?: {
       enabled: boolean;
       indentation: boolean;
       alignment: boolean;
       spacing: boolean;
       lists: boolean;
     };
-    previewCustomizations: {
+    previewCustomizations?: {
       enabled: boolean;
       theme: string;
       fontSize: number;
@@ -263,8 +285,8 @@ export interface LatexTranslatorSettings {
       customCSS: string;
     };
 
-    enableAdvancedLoggingSystem: boolean;
-    loggingFeatures: {
+    enableAdvancedLoggingSystem?: boolean;
+    loggingFeatures?: {
       realTimeFiltering: boolean;
       searchSuggestions: boolean;
       logAnalytics: boolean;
@@ -274,21 +296,21 @@ export interface LatexTranslatorSettings {
       logAggregation: boolean;
       smartAlerts: boolean;
     };
-    logAnalyticsOptions: {
+    logAnalyticsOptions?: {
       enabled: boolean;
       errorTrends: boolean;
       performanceMetrics: boolean;
       userActions: boolean;
       systemEvents: boolean;
     };
-    logVisualizationTypes: {
+    logVisualizationTypes?: {
       enabled: boolean;
       timeline: boolean;
       heatmap: boolean;
       errorDistribution: boolean;
       performanceGraphs: boolean;
     };
-    logAlertRules: {
+    logAlertRules?: {
       enabled: boolean;
       rules: Array<{
         condition: string;
@@ -298,7 +320,7 @@ export interface LatexTranslatorSettings {
         active: boolean;
       }>;
     };
-    logRetentionPolicy: {
+    logRetentionPolicy?: {
       enabled: boolean;
       maxEntries: number;
       maxAge: number;
@@ -307,39 +329,7 @@ export interface LatexTranslatorSettings {
     };
   };
 
-  batchOperations: {
-    defaultRecursive: boolean;
-    defaultSkipExisting: boolean;
-    defaultCreateBackups: boolean;
-    defaultNotifyOnCompletion: boolean;
-    defaultErrorThreshold: number;
-    autoSaveErrorReports: boolean;
-    errorReportLocation: string;
-    maxConcurrentFiles: number;
-    processDelay: number; // Delay between files in ms
-    hotkeys: {
-      openBatchModal: string;
-      quickBatchCurrentFolder: string;
-      quickBatchVault: string;
-    };
-  };
-}
-
-export interface BatchOperationSettings {
-  defaultRecursive: boolean;
-  defaultSkipExisting: boolean;
-  defaultCreateBackups: boolean;
-  defaultNotifyOnCompletion: boolean;
-  defaultErrorThreshold: number;
-  autoSaveErrorReports: boolean;
-  errorReportLocation: string;
-  maxConcurrentFiles: number;
-  processDelay: number; // Delay between files in ms
-  hotkeys: {
-    openBatchModal: string;
-    quickBatchCurrentFolder: string;
-    quickBatchVault: string;
-  };
+  batchOperations: BatchOperationSettings;
 }
 
 export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
@@ -620,11 +610,11 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   },
 
   batchOperations: {
-    defaultRecursive: true,
-    defaultSkipExisting: true,
-    defaultCreateBackups: true,
-    defaultNotifyOnCompletion: true,
-    defaultErrorThreshold: 0.2,
+    recursive: true,
+    skipExisting: true,
+    createBackups: true,
+    notifyOnCompletion: true,
+    errorThreshold: 0.2,
     autoSaveErrorReports: true,
     errorReportLocation: 'latex-translator/error-reports',
     maxConcurrentFiles: 5,
@@ -704,9 +694,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'latex-to-obsidian': 'LaTeX to Obsidian',
               'obsidian-to-latex': 'Obsidian to LaTeX'
           })
-          .setValue(this.plugin.settings.direction || 'latex-to-obsidian')
+          .setValue(this.plugin.getSettings().direction || 'latex-to-obsidian')
           .onChange(async (value) => {
-              this.plugin.settings.direction = value as 'latex-to-obsidian' | 'obsidian-to-latex';
+              this.plugin.getSettings().direction = value as 'latex-to-obsidian' | 'obsidian-to-latex';
               await this.plugin.saveSettings();
           }));
 
@@ -715,9 +705,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Auto Replace')
       .setDesc('Automatically convert LaTeX when pasting into the editor')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.renderImmediately)
+          .setValue(this.plugin.getSettings().renderImmediately)
           .onChange(async (value) => {
-              this.plugin.settings.renderImmediately = value;
+              this.plugin.getSettings().renderImmediately = value;
               await this.plugin.saveSettings();
           }));
 
@@ -726,9 +716,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Notifications')
       .setDesc('Show conversion success/error notifications')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.showNotifications)
+          .setValue(this.plugin.getSettings().showNotifications)
           .onChange(async (value) => {
-              this.plugin.settings.showNotifications = value;
+              this.plugin.getSettings().showNotifications = value;
               await this.plugin.saveSettings();
           }));
   }
@@ -741,9 +731,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Enable Environment Conversion')
       .setDesc('Convert LaTeX environments to Obsidian-compatible format')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.environmentConversion.enabled)
+          .setValue(this.plugin.getSettings().environmentConversion.enabled)
           .onChange(async (value) => {
-              this.plugin.settings.environmentConversion.enabled = value;
+              this.plugin.getSettings().environmentConversion.enabled = value;
               await this.plugin.saveSettings();
           }));
 
@@ -752,9 +742,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Preserve Original on Unknown')
       .setDesc('Keep original LaTeX when encountering unknown environments')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.environmentConversion.preserveOriginalOnUnknown)
+          .setValue(this.plugin.getSettings().environmentConversion.preserveOriginalOnUnknown)
           .onChange(async (value) => {
-              this.plugin.settings.environmentConversion.preserveOriginalOnUnknown = value;
+              this.plugin.getSettings().environmentConversion.preserveOriginalOnUnknown = value;
               await this.plugin.saveSettings();
           }));
 
@@ -763,9 +753,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Convert Environments')
       .setDesc('Convert LaTeX environments to $$ blocks')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.environmentConversion.enabled)
+          .setValue(this.plugin.getSettings().environmentConversion.enabled)
           .onChange(async (value) => {
-              this.plugin.settings.environmentConversion.enabled = value;
+              this.plugin.getSettings().environmentConversion.enabled = value;
               await this.plugin.saveSettings();
           }));
 
@@ -775,14 +765,14 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Additional environment names to treat as display math (comma-separated)')
       .addText(text => text
           .setPlaceholder('matrix, bmatrix, pmatrix')
-          .setValue(Object.keys(this.plugin.settings.environmentConversion.customMappings).join(', '))
+          .setValue(Object.keys(this.plugin.getSettings().environmentConversion.customMappings).join(', '))
           .onChange(async (value) => {
               const environments = value.split(',').map(env => env.trim()).filter(env => env);
               const customMappings: Record<string, string> = {};
               environments.forEach(env => {
                   customMappings[env] = '$$';
               });
-              this.plugin.settings.environmentConversion.customMappings = customMappings;
+              this.plugin.getSettings().environmentConversion.customMappings = customMappings;
               await this.plugin.saveSettings();
           }));
   }
@@ -800,9 +790,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'placeholder': 'Use Placeholders',
               'autoNumber': 'Auto-numbering'
           })
-          .setValue(this.plugin.settings.labelAndReference.referenceHandling)
+          .setValue(this.plugin.getSettings().labelAndReference.referenceHandling)
           .onChange(async (value) => {
-              this.plugin.settings.labelAndReference.referenceHandling = value as 'ignore' | 'placeholder' | 'autoNumber';
+              this.plugin.getSettings().labelAndReference.referenceHandling = value as 'ignore' | 'placeholder' | 'autoNumber';
               await this.plugin.saveSettings();
           }));
 
@@ -811,9 +801,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Remove Labels')
       .setDesc('Remove LaTeX labels during conversion')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.labelAndReference.removeLabels)
+          .setValue(this.plugin.getSettings().labelAndReference.removeLabels)
           .onChange(async (value) => {
-              this.plugin.settings.labelAndReference.removeLabels = value;
+              this.plugin.getSettings().labelAndReference.removeLabels = value;
               await this.plugin.saveSettings();
           }));
   }
@@ -826,9 +816,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Enable Citations')
       .setDesc('Enable citation processing')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.citation.enabled)
+          .setValue(this.plugin.getSettings().citation.enabled)
           .onChange(async (value) => {
-              this.plugin.settings.citation.enabled = value;
+              this.plugin.getSettings().citation.enabled = value;
               await this.plugin.saveSettings();
           }));
 
@@ -837,9 +827,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Default Citation Format')
       .setDesc('Format string for citations')
       .addText(text => text
-          .setValue(this.plugin.settings.citation.defaultFormat)
+          .setValue(this.plugin.getSettings().citation.defaultFormat)
           .onChange(async (value) => {
-              this.plugin.settings.citation.defaultFormat = value;
+              this.plugin.getSettings().citation.defaultFormat = value;
               await this.plugin.saveSettings();
           }));
 
@@ -848,9 +838,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Convert Citations')
       .setDesc('Convert \\cite commands to Obsidian citations')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.citation.enabled)
+          .setValue(this.plugin.getSettings().citation.enabled)
           .onChange(async (value) => {
-              this.plugin.settings.citation.enabled = value;
+              this.plugin.getSettings().citation.enabled = value;
               await this.plugin.saveSettings();
           }));
   }
@@ -863,9 +853,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Expand Macros')
       .setDesc('Expand LaTeX macros during conversion')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.advanced.expandMacros)
+          .setValue(this.plugin.getSettings().advanced.expandMacros)
           .onChange(async (value) => {
-              this.plugin.settings.advanced.expandMacros = value;
+              this.plugin.getSettings().advanced.expandMacros = value;
               await this.plugin.saveSettings();
           }));
 
@@ -874,9 +864,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Remove \\left and \\right')
       .setDesc('Remove \\left and \\right commands from math expressions')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.advanced.removeLeftRight)
+          .setValue(this.plugin.getSettings().advanced.removeLeftRight)
           .onChange(async (value) => {
-              this.plugin.settings.advanced.removeLeftRight = value;
+              this.plugin.getSettings().advanced.removeLeftRight = value;
               await this.plugin.saveSettings();
           }));
 
@@ -885,9 +875,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Unify \\text to \\mathrm')
       .setDesc('Convert \\text commands to \\mathrm in math environments')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.advanced.unifyTextToMathrm)
+          .setValue(this.plugin.getSettings().advanced.unifyTextToMathrm)
           .onChange(async (value) => {
-              this.plugin.settings.advanced.unifyTextToMathrm = value;
+              this.plugin.getSettings().advanced.unifyTextToMathrm = value;
               await this.plugin.saveSettings();
           }));
 
@@ -896,9 +886,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Debug Logging')
       .setDesc('Enable debug logging for advanced troubleshooting')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.advanced.debugLogging)
+          .setValue(this.plugin.getSettings().advanced.debugLogging)
           .onChange(async (value) => {
-              this.plugin.settings.advanced.debugLogging = value;
+              this.plugin.getSettings().advanced.debugLogging = value;
               await this.plugin.saveSettings();
           }));
   }
@@ -911,9 +901,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Enable Preview Panel')
       .setDesc('Show preview panel during conversion')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.enablePreviewPanel)
+          .setValue(this.plugin.getSettings().uiSettings.enablePreviewPanel)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.enablePreviewPanel = value;
+              this.plugin.getSettings().uiSettings.enablePreviewPanel = value;
               await this.plugin.saveSettings();
           }));
 
@@ -926,9 +916,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'right': 'Right',
               'bottom': 'Bottom'
           })
-          .setValue(this.plugin.settings.uiSettings.previewPanelPosition)
+          .setValue(this.plugin.getSettings().uiSettings.previewPanelPosition ?? 'right')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewPanelPosition = value as 'right' | 'bottom';
+              this.plugin.getSettings().uiSettings.previewPanelPosition = value as 'right' | 'bottom';
               await this.plugin.saveSettings();
           }));
 
@@ -937,9 +927,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Auto Update Preview')
       .setDesc('Automatically update the preview panel when changes occur')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.autoUpdatePreview)
+          .setValue(this.plugin.getSettings().uiSettings.autoUpdatePreview ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.autoUpdatePreview = value;
+              this.plugin.getSettings().uiSettings.autoUpdatePreview = value;
               await this.plugin.saveSettings();
           }));
 
@@ -949,11 +939,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Delay before updating the preview panel (in milliseconds)')
       .addText(text => text
           .setPlaceholder('500')
-          .setValue(String(this.plugin.settings.uiSettings.previewDelay))
+          .setValue(String(this.plugin.getSettings().uiSettings.previewDelay))
           .onChange(async (value) => {
               const num = parseInt(value);
               if (!isNaN(num)) {
-                  this.plugin.settings.uiSettings.previewDelay = num;
+                  this.plugin.getSettings().uiSettings.previewDelay = num;
                   await this.plugin.saveSettings();
               }
           }));
@@ -968,9 +958,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'light': 'Light',
               'dark': 'Dark'
           })
-          .setValue(this.plugin.settings.uiSettings.previewTheme)
+          .setValue(this.plugin.getSettings().uiSettings.previewTheme ?? 'auto')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewTheme = value as 'auto' | 'light' | 'dark';
+              this.plugin.getSettings().uiSettings.previewTheme = value as 'auto' | 'light' | 'dark';
               await this.plugin.saveSettings();
           }));
 
@@ -980,10 +970,10 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Font size for the preview panel')
       .addSlider(slider => slider
           .setLimits(10, 24, 1)
-          .setValue(this.plugin.settings.uiSettings.previewFontSize)
+          .setValue(this.plugin.getSettings().uiSettings.previewFontSize ?? 14)
           .setDynamicTooltip()
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewFontSize = value;
+              this.plugin.getSettings().uiSettings.previewFontSize = value;
               await this.plugin.saveSettings();
           }));
 
@@ -992,9 +982,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Line Numbers in Preview')
       .setDesc('Display line numbers in the preview panel')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.previewLineNumbers)
+          .setValue(this.plugin.getSettings().uiSettings.previewLineNumbers ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewLineNumbers = value;
+              this.plugin.getSettings().uiSettings.previewLineNumbers = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1003,9 +993,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Sync Scroll with Editor')
       .setDesc('Synchronize scrolling between editor and preview panel')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.previewSyncScroll)
+          .setValue(this.plugin.getSettings().uiSettings.previewSyncScroll ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewSyncScroll = value;
+              this.plugin.getSettings().uiSettings.previewSyncScroll = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1014,9 +1004,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Differences in Preview')
       .setDesc('Highlight differences between editor and preview content')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.previewShowDiff)
+          .setValue(this.plugin.getSettings().uiSettings.previewShowDiff ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.previewShowDiff = value;
+              this.plugin.getSettings().uiSettings.previewShowDiff = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1025,9 +1015,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Error Notifications')
       .setDesc('Display error notifications in the UI')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.showErrorNotifications)
+          .setValue(this.plugin.getSettings().uiSettings.showErrorNotifications ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.showErrorNotifications = value;
+              this.plugin.getSettings().uiSettings.showErrorNotifications = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1036,9 +1026,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Warning Notifications')
       .setDesc('Display warning notifications in the UI')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.showWarningNotifications)
+          .setValue(this.plugin.getSettings().uiSettings.showWarningNotifications ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.showWarningNotifications = value;
+              this.plugin.getSettings().uiSettings.showWarningNotifications = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1047,9 +1037,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Inline Error Highlighting')
       .setDesc('Highlight errors inline within the preview')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.uiSettings.inlineErrorHighlighting)
+          .setValue(this.plugin.getSettings().uiSettings.inlineErrorHighlighting ?? false)
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.inlineErrorHighlighting = value;
+              this.plugin.getSettings().uiSettings.inlineErrorHighlighting = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1066,9 +1056,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'border': 'Border',
               'side-border': 'Side Border'
           })
-          .setValue(this.plugin.settings.uiSettings.errorHighlightStyle)
+          .setValue(this.plugin.getSettings().uiSettings.errorHighlightStyle || 'underline')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.errorHighlightStyle = value as 
+              this.plugin.getSettings().uiSettings.errorHighlightStyle = value as 
                   'underline' | 'background' | 'gutter' | 'squiggly' | 'border' | 'side-border';
               await this.plugin.saveSettings();
           }));
@@ -1083,9 +1073,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'orange': 'Orange',
               'yellow': 'Yellow'
           })
-          .setValue(this.plugin.settings.uiSettings.errorHighlightColor)
+          .setValue(this.plugin.getSettings().uiSettings.errorHighlightColor || 'red')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.errorHighlightColor = value as 'red' | 'orange' | 'yellow';
+              this.plugin.getSettings().uiSettings.errorHighlightColor = value as 'red' | 'orange' | 'yellow';
               await this.plugin.saveSettings();
           }));
 
@@ -1095,11 +1085,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Duration for error notifications to display (in milliseconds)')
       .addText(text => text
           .setPlaceholder('5000')
-          .setValue(String(this.plugin.settings.uiSettings.errorNotificationDuration))
+          .setValue(String(this.plugin.getSettings().uiSettings.errorNotificationDuration))
           .onChange(async (value) => {
               const num = parseInt(value);
               if (!isNaN(num)) {
-                  this.plugin.settings.uiSettings.errorNotificationDuration = num;
+                  this.plugin.getSettings().uiSettings.errorNotificationDuration = num;
                   await this.plugin.saveSettings();
               }
           }));
@@ -1114,9 +1104,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'type': 'Type',
               'location': 'Location'
           })
-          .setValue(this.plugin.settings.uiSettings.errorGrouping)
+          .setValue(this.plugin.getSettings().uiSettings.errorGrouping || 'none')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.errorGrouping = value as 'none' | 'type' | 'location';
+              this.plugin.getSettings().uiSettings.errorGrouping = value as 'none' | 'type' | 'location';
               await this.plugin.saveSettings();
           }));
 
@@ -1130,9 +1120,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               'warning': 'Warning',
               'error': 'Error'
           })
-          .setValue(this.plugin.settings.uiSettings.errorMinSeverity)
+          .setValue(this.plugin.getSettings().uiSettings.errorMinSeverity || 'error')
           .onChange(async (value) => {
-              this.plugin.settings.uiSettings.errorMinSeverity = value as 'info' | 'warning' | 'error';
+              this.plugin.getSettings().uiSettings.errorMinSeverity = value as 'info' | 'warning' | 'error';
               await this.plugin.saveSettings();
           }));
   }
@@ -1140,61 +1130,61 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
   private addBatchOperationSettings(containerEl: HTMLElement): void {
     containerEl.createEl('h3', { text: 'Batch Operations' });
 
-    // Default Recursive
+    // Recursive
     new Setting(containerEl)
-      .setName('Default Recursive')
-      .setDesc('Process folders recursively by default')
+      .setName('Recursive')
+      .setDesc('Process folders recursively')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.batchOperations.defaultRecursive)
+          .setValue(this.plugin.getSettings().batchOperations.recursive)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.defaultRecursive = value;
+              this.plugin.getSettings().batchOperations.recursive = value;
               await this.plugin.saveSettings();
           }));
 
-    // Default Skip Existing
+    // Skip Existing
     new Setting(containerEl)
-      .setName('Default Skip Existing')
+      .setName('Skip Existing')
       .setDesc('Skip files that already have been processed')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.batchOperations.defaultSkipExisting)
+          .setValue(this.plugin.getSettings().batchOperations.skipExisting)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.defaultSkipExisting = value;
+              this.plugin.getSettings().batchOperations.skipExisting = value;
               await this.plugin.saveSettings();
           }));
 
-    // Default Create Backups
+    // Create Backups
     new Setting(containerEl)
-      .setName('Default Create Backups')
-      .setDesc('Create backups before batch operations by default')
+      .setName('Create Backups')
+      .setDesc('Create backups before batch operations')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.batchOperations.defaultCreateBackups)
+          .setValue(this.plugin.getSettings().batchOperations.createBackups)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.defaultCreateBackups = value;
+              this.plugin.getSettings().batchOperations.createBackups = value;
               await this.plugin.saveSettings();
           }));
 
-    // Default Notify on Completion
+    // Notify on Completion
     new Setting(containerEl)
-      .setName('Default Notify on Completion')
-      .setDesc('Notify when batch operations complete by default')
+      .setName('Notify on Completion')
+      .setDesc('Notify when batch operations complete')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.batchOperations.defaultNotifyOnCompletion)
+          .setValue(this.plugin.getSettings().batchOperations.notifyOnCompletion)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.defaultNotifyOnCompletion = value;
+              this.plugin.getSettings().batchOperations.notifyOnCompletion = value;
               await this.plugin.saveSettings();
           }));
 
-    // Default Error Threshold
+    // Error Threshold
     new Setting(containerEl)
-      .setName('Default Error Threshold')
+      .setName('Error Threshold')
       .setDesc('Maximum allowed error rate before aborting batch operations (e.g., 0.2 for 20%)')
       .addText(text => text
           .setPlaceholder('0.2')
-          .setValue(String(this.plugin.settings.batchOperations.defaultErrorThreshold))
+          .setValue(String(this.plugin.getSettings().batchOperations.errorThreshold))
           .onChange(async (value) => {
               const num = parseFloat(value);
               if (!isNaN(num) && num >= 0 && num <= 1) {
-                  this.plugin.settings.batchOperations.defaultErrorThreshold = num;
+                  this.plugin.getSettings().batchOperations.errorThreshold = num;
                   await this.plugin.saveSettings();
               } else {
                   new Notice('Please enter a valid number between 0 and 1 for the error threshold.');
@@ -1206,9 +1196,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Auto Save Error Reports')
       .setDesc('Automatically save error reports after batch operations')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.settings.batchOperations.autoSaveErrorReports)
+          .setValue(this.plugin.getSettings().batchOperations.autoSaveErrorReports)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.autoSaveErrorReports = value;
+              this.plugin.getSettings().batchOperations.autoSaveErrorReports = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1218,9 +1208,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Path to save error reports (relative to vault)')
       .addText(text => text
           .setPlaceholder('latex-translator/error-reports')
-          .setValue(this.plugin.settings.batchOperations.errorReportLocation)
+          .setValue(this.plugin.getSettings().batchOperations.errorReportLocation)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.errorReportLocation = value;
+              this.plugin.getSettings().batchOperations.errorReportLocation = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1230,10 +1220,10 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Maximum number of files to process concurrently')
       .addSlider(slider => slider
           .setLimits(1, 10, 1)
-          .setValue(this.plugin.settings.batchOperations.maxConcurrentFiles)
+          .setValue(this.plugin.getSettings().batchOperations.maxConcurrentFiles)
           .setDynamicTooltip()
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.maxConcurrentFiles = value;
+              this.plugin.getSettings().batchOperations.maxConcurrentFiles = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1243,11 +1233,11 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Delay between processing files in milliseconds')
       .addText(text => text
           .setPlaceholder('100')
-          .setValue(String(this.plugin.settings.batchOperations.processDelay))
+          .setValue(String(this.plugin.getSettings().batchOperations.processDelay))
           .onChange(async (value) => {
               const num = parseInt(value);
               if (!isNaN(num) && num >= 0) {
-                  this.plugin.settings.batchOperations.processDelay = num;
+                  this.plugin.getSettings().batchOperations.processDelay = num;
                   await this.plugin.saveSettings();
               } else {
                   new Notice('Please enter a valid non-negative number for the process delay.');
@@ -1263,9 +1253,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Hotkey to open the batch operations modal')
       .addText(text => text
           .setPlaceholder('mod+shift+b')
-          .setValue(this.plugin.settings.batchOperations.hotkeys.openBatchModal)
+          .setValue(this.plugin.getSettings().batchOperations.hotkeys.openBatchModal)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.hotkeys.openBatchModal = value;
+              this.plugin.getSettings().batchOperations.hotkeys.openBatchModal = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1275,9 +1265,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Hotkey to quickly batch process the current folder')
       .addText(text => text
           .setPlaceholder('mod+shift+f')
-          .setValue(this.plugin.settings.batchOperations.hotkeys.quickBatchCurrentFolder)
+          .setValue(this.plugin.getSettings().batchOperations.hotkeys.quickBatchCurrentFolder)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.hotkeys.quickBatchCurrentFolder = value;
+              this.plugin.getSettings().batchOperations.hotkeys.quickBatchCurrentFolder = value;
               await this.plugin.saveSettings();
           }));
 
@@ -1287,9 +1277,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setDesc('Hotkey to quickly batch process the entire vault')
       .addText(text => text
           .setPlaceholder('mod+shift+v')
-          .setValue(this.plugin.settings.batchOperations.hotkeys.quickBatchVault)
+          .setValue(this.plugin.getSettings().batchOperations.hotkeys.quickBatchVault)
           .onChange(async (value) => {
-              this.plugin.settings.batchOperations.hotkeys.quickBatchVault = value;
+              this.plugin.getSettings().batchOperations.hotkeys.quickBatchVault = value;
               await this.plugin.saveSettings();
           }));
   }
