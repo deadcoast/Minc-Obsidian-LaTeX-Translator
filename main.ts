@@ -3,11 +3,9 @@ import {
     Editor, 
     MarkdownView, 
     Plugin, 
-    Setting, 
     WorkspaceLeaf, 
     Notice, 
     View, 
-    ItemView, 
     addIcon,
     TAbstractFile,
     TFile,
@@ -18,79 +16,7 @@ import { LatexTranslatorSettingsTab } from '@ui/ui_settings/LatexTranslatorSetti
 import LatexParser from '@core/parser/latexParser';
 import { LatexView, LATEX_VIEW_TYPE } from '@views/LatexView';
 import { logger } from '@utils/logger';
-
-// Consolidated Settings Interface
-interface LatexTranslatorSettings {
-    renderImmediately: boolean;
-    useCallouts: boolean;
-    autoNumberEquations: boolean;
-    preserveLabels: boolean;
-    showNotifications: boolean;
-    // Add any additional settings from MincLatexSettings here
-    // Example:
-    // enableAdvancedFeatures: boolean;
-}
-
-// Consolidated Default Settings
-const DEFAULT_SETTINGS: LatexTranslatorSettings = {
-    renderImmediately: true,
-    useCallouts: true,
-    autoNumberEquations: true,
-    preserveLabels: true,
-    showNotifications: true,
-    // Initialize additional settings here
-    // Example:
-    // enableAdvancedFeatures: false,
-};
-
-// Prompt Modal for Folder Conversion
-class PromptModal extends Modal {
-    private message: string;
-    private resolve: (value: string | null) => void;
-
-    constructor(app: App, message: string, resolve: (value: string | null) => void) {
-        super(app);
-        this.message = message;
-        this.resolve = resolve;
-    }
-
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.createEl("h2", { text: this.message });
-
-        const input = contentEl.createEl("input", {
-            type: "text",
-            placeholder: "Enter folder path",
-        });
-
-        // Accept input via Enter key or Confirm button
-        input.addEventListener("keypress", (event) => {
-            if (event.key === "Enter") {
-                this.resolve(input.value);
-                this.close();
-            }
-        });
-
-        const buttonsDiv = contentEl.createDiv({ cls: 'modal-buttons' });
-
-        const confirmBtn = buttonsDiv.createEl("button", { text: "Confirm" });
-        confirmBtn.addEventListener("click", () => {
-            this.resolve(input.value);
-            this.close();
-        });
-
-        const cancelBtn = buttonsDiv.createEl("button", { text: "Cancel" });
-        cancelBtn.addEventListener("click", () => {
-            this.resolve(null);
-            this.close();
-        });
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-    }
-}
+import { LatexTranslatorSettings, DEFAULT_SETTINGS } from './src/settings/settings';
 
 export default class LatexTranslatorPlugin extends Plugin {
     private parser!: LatexParser;
@@ -134,7 +60,7 @@ export default class LatexTranslatorPlugin extends Plugin {
                 this.handleEditorOperation(editor, (text) => 
                     this.parser.parse(text, { 
                         direction: 'latex-to-obsidian',
-                        preserveLabels: this.settings.preserveLabels,
+                        preserveLabels: !this.settings.labelAndReference.removeLabels,
                         numberEquations: this.settings.autoNumberEquations
                     })
                 );
@@ -164,7 +90,7 @@ export default class LatexTranslatorPlugin extends Plugin {
                     try {
                         const converted = this.parser.parse(selection, { 
                             direction: 'latex-to-obsidian',
-                            preserveLabels: this.settings.preserveLabels,
+                            preserveLabels: !this.settings.labelAndReference.removeLabels,
                             numberEquations: this.settings.autoNumberEquations
                         });
                         editor.replaceSelection(converted);
@@ -218,7 +144,7 @@ export default class LatexTranslatorPlugin extends Plugin {
                             const content = await this.app.vault.read(file);
                             const converted = this.parser.parse(content, { 
                                 direction: 'latex-to-obsidian',
-                                preserveLabels: this.settings.preserveLabels,
+                                preserveLabels: !this.settings.labelAndReference.removeLabels,
                                 numberEquations: this.settings.autoNumberEquations
                             });
                             await this.app.vault.modify(file, converted);
@@ -245,7 +171,12 @@ export default class LatexTranslatorPlugin extends Plugin {
 
         // Register event handlers
         this.registerEvent(
-            this.app.workspace.on('editor:change', this.handleEditorChange.bind(this))
+            this.app.workspace.on('editor-change', (ev: Editor) => {
+                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (view) {
+                    this.handleEditorChange(ev, view);
+                }
+            })
         );
 
         this.registerEvent(
@@ -309,7 +240,7 @@ export default class LatexTranslatorPlugin extends Plugin {
     /**
      * Handle editor changes for immediate rendering
      */
-    private async handleEditorChange(editor: Editor, _markdownView: MarkdownView) {
+    private async handleEditorChange(editor: Editor, markdownView: MarkdownView) {
         if (!this.settings.renderImmediately || this.isProcessing) {
             return;
         }
@@ -319,12 +250,16 @@ export default class LatexTranslatorPlugin extends Plugin {
             const content = editor.getValue();
             const mathContent = this.parser.parse(content, {
                 direction: 'latex-to-obsidian',
-                preserveLabels: this.settings.preserveLabels,
+                preserveLabels: !this.settings.labelAndReference.removeLabels,
                 numberEquations: this.settings.autoNumberEquations
             });
             
             editor.setValue(mathContent);
-            await this.refreshPreview();
+            
+            // Only refresh preview if we're in preview mode
+            if (markdownView.getMode() === 'preview') {
+                await this.refreshPreview();
+            }
         } catch (error) {
             logger.error('Error in immediate rendering:', error);
             if (this.settings.showNotifications) {
@@ -348,7 +283,7 @@ export default class LatexTranslatorPlugin extends Plugin {
             const content = view.editor.getValue();
             const mathContent = this.parser.parse(content, {
                 direction: 'latex-to-obsidian',
-                preserveLabels: this.settings.preserveLabels,
+                preserveLabels: !this.settings.labelAndReference.removeLabels,
                 numberEquations: this.settings.autoNumberEquations
             });
             
@@ -418,5 +353,54 @@ export default class LatexTranslatorPlugin extends Plugin {
             this.app.workspace.detachLeavesOfType(LATEX_VIEW_TYPE);
             this.activeView = null;
         }
+    }
+}
+
+// Prompt Modal for Folder Conversion
+class PromptModal extends Modal {
+    private message: string;
+    private resolve: (value: string | null) => void;
+
+    constructor(app: App, message: string, resolve: (value: string | null) => void) {
+        super(app);
+        this.message = message;
+        this.resolve = resolve;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl("h2", { text: this.message });
+
+        const input = contentEl.createEl("input", {
+            type: "text",
+            placeholder: "Enter folder path",
+        });
+
+        // Accept input via Enter key or Confirm button
+        input.addEventListener("keypress", (event) => {
+            if (event.key === "Enter") {
+                this.resolve(input.value);
+                this.close();
+            }
+        });
+
+        const buttonsDiv = contentEl.createDiv({ cls: 'modal-buttons' });
+
+        const confirmBtn = buttonsDiv.createEl("button", { text: "Confirm" });
+        confirmBtn.addEventListener("click", () => {
+            this.resolve(input.value);
+            this.close();
+        });
+
+        const cancelBtn = buttonsDiv.createEl("button", { text: "Cancel" });
+        cancelBtn.addEventListener("click", () => {
+            this.resolve(null);
+            this.close();
+        });
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }

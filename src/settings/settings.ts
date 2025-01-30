@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import { LatexTranslatorPlugin } from '../ui/ui_settings/LatexTranslatorSettingsTab';
+import { default as LatexTranslatorPlugin } from '../../main';
 import { ParserOptions } from '../core/parser/latexParser';
 
 // LatexTranslatorSettings.ts
@@ -24,6 +24,11 @@ export interface BatchOperationSettings {
   };
 }
 
+export interface UISettings {
+  autoExpandLogEntries: boolean;
+  minimumBatchSize: number;  // Minimum number of operations to show progress bar
+}
+
 export interface LatexTranslatorSettings {
   direction: 'latex-to-obsidian' | 'obsidian-to-latex';
 
@@ -36,6 +41,7 @@ export interface LatexTranslatorSettings {
   showNotifications: boolean;
   useCallouts: boolean;
   renderImmediately: boolean;
+  autoNumberEquations: boolean;
 
   bracketReplacement: {
     convertDisplayMath: boolean;
@@ -353,6 +359,7 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   showNotifications: true,
   useCallouts: true,
   renderImmediately: true,
+  autoNumberEquations: false,
 
   bracketReplacement: {
     convertDisplayMath: true,
@@ -418,7 +425,7 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
     showProgressBar: true,
     showStatusBarInfo: true,
     showCommandCount: true,
-    minimumBatchSize: 10,
+    minimumBatchSize: 10,  // Default value for minimum batch size
     progressBarStyle: 'detailed',
     progressBarPosition: 'notice',
     progressBarTheme: 'default',
@@ -719,6 +726,17 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
           .setValue(this.plugin.getSettings().showNotifications)
           .onChange(async (value) => {
               this.plugin.getSettings().showNotifications = value;
+              await this.plugin.saveSettings();
+          }));
+
+    // Auto Number Equations
+    new Setting(containerEl)
+      .setName('Auto Number Equations')
+      .setDesc('Automatically number equations')
+      .addToggle(toggle => toggle
+          .setValue(this.plugin.getSettings().autoNumberEquations)
+          .onChange(async (value) => {
+              this.plugin.getSettings().autoNumberEquations = value;
               await this.plugin.saveSettings();
           }));
   }
@@ -1026,7 +1044,7 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Show Warning Notifications')
       .setDesc('Display warning notifications in the UI')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.getSettings().uiSettings.showWarningNotifications ?? false)
+          .setValue(this.plugin.getSettings().uiSettings.showWarningNotifications ?? true)
           .onChange(async (value) => {
               this.plugin.getSettings().uiSettings.showWarningNotifications = value;
               await this.plugin.saveSettings();
@@ -1123,6 +1141,17 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
           .setValue(this.plugin.getSettings().uiSettings.errorMinSeverity || 'error')
           .onChange(async (value) => {
               this.plugin.getSettings().uiSettings.errorMinSeverity = value as 'info' | 'warning' | 'error';
+              await this.plugin.saveSettings();
+          }));
+
+    // Auto Expand Log Entries
+    new Setting(containerEl)
+      .setName('Auto Expand Log Entries')
+      .setDesc('Automatically expand log entries')
+      .addToggle(toggle => toggle
+          .setValue(this.plugin.getSettings().uiSettings.autoExpandLogEntries ?? false)
+          .onChange(async (value: boolean) => {
+              this.plugin.getSettings().uiSettings.autoExpandLogEntries = value;
               await this.plugin.saveSettings();
           }));
   }
