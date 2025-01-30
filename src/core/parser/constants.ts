@@ -6,7 +6,9 @@
 export const DEFAULT_OBSIDIAN_CONFIG: ObsidianMathConfig = {
     previewMode: true,
     renderImmediately: true,
-    useCallouts: true
+    useCallouts: true,
+    displayMathDelimiter: 'dollars',
+    inlineMathDelimiter: 'dollars'
 };
 
 // Math operators and functions
@@ -288,13 +290,13 @@ export const ERROR_MESSAGES = {
     MISSING_END: (env: string) => `Missing \\end{${env}}`,
     UNMATCHED_DELIMITER: (delim: string) => `Unmatched delimiter: ${delim}`,
     INVALID_REFERENCE: (ref: string) => `Invalid reference: ${ref}`,
-    LABEL_ERROR: (label: string) => `Invalid label format: ${label}`,
+    LABEL_ERROR: (label: string) => `Error processing label: ${label}`,
     INVALID_MACRO: (name: string) => `Invalid macro: ${name}`,
-    MACRO_ARG_MISMATCH: (name: string, expected: number, got: number) => 
-        `Macro ${name} expects ${expected} arguments but got ${got}`,
-    CITATION_ERROR: (key: string) => `Invalid citation key: ${key}`,
-    NESTED_ERROR: (outer: string, inner: string) => 
-        `Invalid nesting: cannot place ${inner} inside ${outer}`,
+    MACRO_ARG_MISMATCH: (name: string, expected: number, got: number) =>
+        `Macro ${name} expects ${expected} arguments, got ${got}`,
+    CITATION_ERROR: (key: string) => `Error processing citation: ${key}`,
+    NESTED_ERROR: (outer: string, inner: string) =>
+        `Invalid nesting: ${inner} cannot be nested inside ${outer}`,
     UNMATCHED_ENVIRONMENT: (env: string) => `Unmatched environment: ${env}`
 };
 
@@ -417,6 +419,20 @@ export const REFERENCE_FORMATS: ReferenceFormats = {
     }
 };
 
+// Valid environments and nesting rules
+export type ValidEnvironments = 'equation' | 'align' | 'gather' | 'multline';
+
+export function isValidEnvironment(env: string): env is ValidEnvironments {
+    return ['equation', 'align', 'gather', 'multline'].includes(env);
+}
+
+export const VALID_NESTING: Record<ValidEnvironments, ValidEnvironments[]> = {
+    equation: ['align', 'gather', 'multline'],
+    align: ['equation', 'gather', 'multline'],
+    gather: ['equation', 'align', 'multline'],
+    multline: ['equation', 'align', 'gather']
+};
+
 // Valid math environments
 export const MATH_ENVIRONMENTS = [
     'equation',
@@ -436,20 +452,6 @@ export const MATH_ENVIRONMENTS = [
     'Vmatrix',
     'cases'
 ];
-
-// Valid nesting rules for LaTeX environments
-export type ValidEnvironments = 'equation' | 'align' | 'gather' | 'multline';
-export const VALID_NESTING: Record<ValidEnvironments, ValidEnvironments[]> = {
-    equation: ['align', 'gather', 'multline'],
-    align: ['equation', 'gather', 'multline'],
-    gather: ['equation', 'align', 'multline'],
-    multline: ['equation', 'align', 'gather']
-};
-
-// Type guard for ValidEnvironments
-export function isValidEnvironment(env: string): env is ValidEnvironments {
-    return ['equation', 'align', 'gather', 'multline'].includes(env);
-}
 
 // Array column types
 type ArrayColumnType = {
@@ -504,4 +506,6 @@ export interface ObsidianMathConfig {
     previewMode: boolean;
     renderImmediately: boolean;
     useCallouts: boolean;
+    displayMathDelimiter: 'dollars' | 'brackets';  // '$$' vs '\[ \]'
+    inlineMathDelimiter: 'dollars' | 'parentheses';  // '$' vs '\( \)'
 }
