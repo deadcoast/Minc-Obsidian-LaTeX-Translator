@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { createRoot, Root } from 'react-dom/client';
 import * as React from 'react';
-import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { CommandHistory } from '../../core/history/commandHistory';
 
 export const LOGS_VIEW_TYPE = 'latex-translator-logs';

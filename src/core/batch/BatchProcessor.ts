@@ -1,5 +1,5 @@
 import { TFile, TFolder, Vault, Notice } from 'obsidian';
-import { LatexTranslatorSettings } from '../settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { BatchErrorReport } from '../error/ErrorReport';
 import { LatexTranslator } from '../translator/LatexTranslator';
 

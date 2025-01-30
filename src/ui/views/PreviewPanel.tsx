@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf, MarkdownRenderer, debounce } from 'obsidian';
 import { createRoot, Root } from 'react-dom/client';
 import * as React from 'react';
 import { parseLatexToObsidian } from '../../core/parser/latexParser';
-import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { logger } from '@utils/logger';
 
 export const PREVIEW_VIEW_TYPE = 'latex-translator-preview';

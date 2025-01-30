@@ -1,8 +1,8 @@
 import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from 'obsidian';
 import LatexTranslatorPlugin from '../../main';
-import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { logger } from '@utils/logger';
-import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../core/settings/settingsValidation';
+import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../settings/settingsValidation';
 
 export class LatexTranslatorSettingsTab extends PluginSettingTab {
     plugin: LatexTranslatorPlugin;

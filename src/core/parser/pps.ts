@@ -28,7 +28,7 @@ import {
     InvalidNestingError, 
     UnknownEnvironmentError,
     ErrorRecovery 
-} from '../errors/parserErrors';
+} from '../error/parserErrors';
 
 import { TheoremParser } from './theoremParser';
 

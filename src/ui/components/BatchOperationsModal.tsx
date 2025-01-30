@@ -1,6 +1,6 @@
 import { App, Modal, Setting, TFolder } from 'obsidian';
 import { BatchProcessor } from '../../core/batch/BatchProcessor';
-import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { LatexTranslator } from '../../core/translator/LatexTranslator';
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';

@@ -96,7 +96,7 @@ class PromptModal extends Modal {
 
 export default class LatexTranslatorPlugin extends Plugin {
     private parser: LatexParser;
-    private settings: LatexTranslatorSettings;
+    public settings: LatexTranslatorSettings;
     private activeView: View | null = null;
 
     async onload() {

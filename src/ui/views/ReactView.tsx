@@ -7,7 +7,7 @@ import { Notice, TFolder, TFile, Modal, App } from 'obsidian';
 import { parseLatexToObsidian } from '@core/parser'; // Ensure correct path
 import { FileConversionProgress } from '@views/index'; // Using named import
 import LatexTranslatorPlugin from '../../main'; // Import plugin type
-import { settingsToParserOptions } from '../../core/settings/settings';
+import { settingsToParserOptions } from '../../settings/settings';
 
 /**
  * Context to provide the Obsidian App instance to React components.

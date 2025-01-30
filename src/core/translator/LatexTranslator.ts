@@ -1,6 +1,6 @@
 import { TFile } from 'obsidian';
 import parseLatexToObsidian, { ParserOptions } from '../parser/latexParser';
-import { LatexTranslatorSettings, settingsToParserOptions } from '../settings/settings';
+import { LatexTranslatorSettings, settingsToParserOptions } from '../../settings/settings';
 import { CommandHistory } from '../history/commandHistory';
 import { ErrorReport } from '../error/ErrorReport';
 import { ErrorHandler } from '../error/ErrorHandler';

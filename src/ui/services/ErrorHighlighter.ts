@@ -1,5 +1,5 @@
 import { Editor, EditorPosition } from 'obsidian';
-import { LatexTranslatorSettings } from '../../core/settings/settings';
+import { LatexTranslatorSettings } from '../../settings/settings';
 import { Decoration, EditorView } from '@codemirror/view';
 import { StateEffect, RangeSet } from '@codemirror/state';
 
