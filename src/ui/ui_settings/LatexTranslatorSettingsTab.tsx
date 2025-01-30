@@ -48,7 +48,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .addDropdown(dropdown => dropdown
                 .addOption('right', 'Right')
                 .addOption('bottom', 'Bottom')
-                .setValue(this.plugin.settings.uiSettings.previewPanelPosition)
+                .setValue(this.plugin.settings.uiSettings.previewPanelPosition ?? 'right')
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.previewPanelPosition = value as 'right' | 'bottom';
                     await this.plugin.saveSettings();
@@ -58,7 +58,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Auto-Update Preview')
             .setDesc('Automatically update the preview as you type')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.autoUpdatePreview)
+                .setValue(this.plugin.settings.uiSettings.autoUpdatePreview ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.autoUpdatePreview = value;
                     await this.plugin.saveSettings();
@@ -69,7 +69,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Delay in milliseconds before updating the preview (when auto-update is enabled)')
             .addSlider(slider => slider
                 .setLimits(100, 2000, 100)
-                .setValue(this.plugin.settings.uiSettings.previewDelay)
+                .setValue(this.plugin.settings.uiSettings.previewDelay ?? 500)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.previewDelay = value;
@@ -83,7 +83,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Error Notifications')
             .setDesc('Display error notifications when conversion fails')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showErrorNotifications)
+                .setValue(this.plugin.settings.uiSettings.showErrorNotifications ?? true)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showErrorNotifications = value;
                     await this.plugin.saveSettings();
@@ -93,7 +93,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Warning Notifications')
             .setDesc('Display warning notifications for potential issues')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showWarningNotifications)
+                .setValue(this.plugin.settings.uiSettings.showWarningNotifications ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showWarningNotifications = value;
                     await this.plugin.saveSettings();
@@ -103,7 +103,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Inline Error Highlighting')
             .setDesc('Highlight errors directly in the editor')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.inlineErrorHighlighting)
+                .setValue(this.plugin.settings.uiSettings.inlineErrorHighlighting ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.inlineErrorHighlighting = value;
                     await this.plugin.saveSettings();
@@ -116,7 +116,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('underline', 'Underline')
                 .addOption('background', 'Background')
                 .addOption('gutter', 'Gutter Icon')
-                .setValue(this.plugin.settings.uiSettings.errorHighlightStyle)
+                .setValue(this.plugin.settings.uiSettings.errorHighlightStyle ?? 'underline')
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.errorHighlightStyle = value as 'underline' | 'background' | 'gutter';
                     await this.plugin.saveSettings();
@@ -129,7 +129,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Conversion Logs')
             .setDesc('Display a panel with conversion logs and errors')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showConversionLogs)
+                .setValue(this.plugin.settings.uiSettings.showConversionLogs ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showConversionLogs = value;
                     await this.plugin.saveSettings();
@@ -142,7 +142,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('basic', 'Basic')
                 .addOption('detailed', 'Detailed')
                 .addOption('debug', 'Debug')
-                .setValue(this.plugin.settings.uiSettings.logDetailLevel)
+                .setValue(this.plugin.settings.uiSettings.logDetailLevel ?? 'basic')
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.logDetailLevel = value as 'basic' | 'detailed' | 'debug';
                     await this.plugin.saveSettings();
@@ -153,9 +153,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Maximum number of log entries to keep')
             .addSlider(slider => slider
                 .setLimits(50, 500, 50)
-                .setValue(this.plugin.settings.uiSettings.maxLogEntries)
+                .setValue(this.plugin.settings.uiSettings.maxLogEntries ?? 50)
                 .setDynamicTooltip()
-                .onChange(async (value) => {
+                .onChange(async (value: number) => {
                     this.plugin.settings.uiSettings.maxLogEntries = value;
                     await this.plugin.saveSettings();
                 }));
@@ -164,7 +164,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Auto-Expand Log Entries')
             .setDesc('Automatically expand detailed log entries')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.autoExpandLogEntries)
+                .setValue(this.plugin.settings.uiSettings.autoExpandLogEntries ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.autoExpandLogEntries = value;
                     await this.plugin.saveSettings();
@@ -177,7 +177,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Progress Bar')
             .setDesc('Display a progress bar for batch operations')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showProgressBar)
+                .setValue(this.plugin.settings.uiSettings.showProgressBar ?? true)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showProgressBar = value;
                     await this.plugin.saveSettings();
@@ -187,7 +187,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Status Bar Info')
             .setDesc('Display conversion information in the status bar')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showStatusBarInfo)
+                .setValue(this.plugin.settings.uiSettings.showStatusBarInfo ?? true)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showStatusBarInfo = value;
                     await this.plugin.saveSettings();
@@ -197,7 +197,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Command Count')
             .setDesc('Display command count in the status bar')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showCommandCount)
+                .setValue(this.plugin.settings.uiSettings.showCommandCount ?? false)
                 .onChange(async (value) => {
                     this.plugin.settings.uiSettings.showCommandCount = value;
                     await this.plugin.saveSettings();
@@ -208,10 +208,10 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Minimum number of operations to show progress bar')
             .addSlider(slider => slider
                 .setLimits(5, 50, 5)
-                .setValue(this.plugin.settings.uiSettings.minimumBatchSize)
+                .setValue(this.plugin.settings.uiSettings.minimumBatchSize ?? 5)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.minimumBatchSize = value;
+                    this.plugin.settings.uiSettings.minimumBatchSize = value ?? 5;
                     await this.plugin.saveSettings();
                 }));
     }
@@ -527,7 +527,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .setLimits(0, 100, 5)
                 .setValue(settings.batchOperations.errorThreshold * 100)
                 .setDynamicTooltip()
-                .onChange(async value => {
+                .onChange(async (value: number) => {
                     settings.batchOperations.errorThreshold = value / 100;
                     await this.plugin.saveSettings();
                 }));
@@ -559,7 +559,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .setLimits(1, 10, 1)
                 .setValue(settings.batchOperations.maxConcurrentFiles)
                 .setDynamicTooltip()
-                .onChange(async value => {
+                .onChange(async (value: number) => {
                     settings.batchOperations.maxConcurrentFiles = value;
                     await this.plugin.saveSettings();
                 }));
@@ -571,7 +571,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .setLimits(0, 500, 50)
                 .setValue(settings.batchOperations.processDelay)
                 .setDynamicTooltip()
-                .onChange(async value => {
+                .onChange(async (value: number) => {
                     settings.batchOperations.processDelay = value;
                     await this.plugin.saveSettings();
                 }));
