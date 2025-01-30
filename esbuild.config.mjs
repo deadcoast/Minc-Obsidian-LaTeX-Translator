@@ -24,6 +24,10 @@ const context = await esbuild.context({
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
   outfile: 'main.js',
+  loader: {
+    '.tsx': 'tsx',
+    '.ts': 'ts',
+  },
   jsx: 'automatic',
   jsxImportSource: 'react',
   plugins: [

@@ -1,6 +1,6 @@
 import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from 'obsidian';
-import LatexTranslatorPlugin from '../../main';
 import { LatexTranslatorSettings } from '../../settings/settings';
+import { LatexTranslatorPlugin } from '../../main';
 import { logger } from '@utils/logger';
 import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../settings/settingsValidation';
 
@@ -481,12 +481,12 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setHeading();
 
         new Setting(containerEl)
-            .setName('Default Recursive Processing')
+            .setName('Recursive Processing')
             .setDesc('Process subfolders by default in batch operations')
             .addToggle(toggle => toggle
-                .setValue(settings.batchOperations.defaultRecursive)
+                .setValue(settings.batchOperations.recursive)
                 .onChange(async value => {
-                    settings.batchOperations.defaultRecursive = value;
+                    settings.batchOperations.recursive = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -494,19 +494,19 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Skip Existing Translations')
             .setDesc('Skip files that have already been translated')
             .addToggle(toggle => toggle
-                .setValue(settings.batchOperations.defaultSkipExisting)
+                .setValue(settings.batchOperations.skipExisting)
                 .onChange(async value => {
-                    settings.batchOperations.defaultSkipExisting = value;
+                    settings.batchOperations.skipExisting = value;
                     await this.plugin.saveSettings();
                 }));
 
         new Setting(containerEl)
             .setName('Create Backups')
-            .setDesc('Create backup files before batch processing')
+            .setDesc('Create backup files before translating')
             .addToggle(toggle => toggle
-                .setValue(settings.batchOperations.defaultCreateBackups)
+                .setValue(settings.batchOperations.createBackups)
                 .onChange(async value => {
-                    settings.batchOperations.defaultCreateBackups = value;
+                    settings.batchOperations.createBackups = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -514,9 +514,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Completion Notification')
             .setDesc('Show a notification when batch processing completes')
             .addToggle(toggle => toggle
-                .setValue(settings.batchOperations.defaultNotifyOnCompletion)
+                .setValue(settings.batchOperations.notifyOnCompletion)
                 .onChange(async value => {
-                    settings.batchOperations.defaultNotifyOnCompletion = value;
+                    settings.batchOperations.notifyOnCompletion = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -525,10 +525,10 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Stop processing if error rate exceeds this percentage (0-100)')
             .addSlider(slider => slider
                 .setLimits(0, 100, 5)
-                .setValue(settings.batchOperations.defaultErrorThreshold * 100)
+                .setValue(settings.batchOperations.errorThreshold * 100)
                 .setDynamicTooltip()
                 .onChange(async value => {
-                    settings.batchOperations.defaultErrorThreshold = value / 100;
+                    settings.batchOperations.errorThreshold = value / 100;
                     await this.plugin.saveSettings();
                 }));
 

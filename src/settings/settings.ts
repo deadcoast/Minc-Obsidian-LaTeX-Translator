@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import { LatexTranslatorPlugin } from '../main';
+import { LatexTranslatorPlugin } from '../ui/ui_settings/LatexTranslatorSettingsTab';
 import { ParserOptions } from '../core/parser/latexParser';
 
 // LatexTranslatorSettings.ts

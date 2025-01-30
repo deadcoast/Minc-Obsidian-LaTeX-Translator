@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import LatexTranslatorPlugin from '../../main';
+import { LatexTranslatorPlugin } from '../../main';
 
 export class LatexTranslatorSettingTab extends PluginSettingTab {
     plugin: LatexTranslatorPlugin;
@@ -49,10 +49,10 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Auto-Number Equations')
             .setDesc('Automatically number equations when converting from LaTeX')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.getSettings().autoNumberEquations)
+                .setValue(this.plugin.getSettings().labelAndReference.autoNumbering.startEquation > 0)
                 .onChange(async (value) => {
                     const settings = this.plugin.getSettings();
-                    settings.autoNumberEquations = value;
+                    settings.labelAndReference.autoNumbering.startEquation = value ? 1 : 0;
                     this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
@@ -61,10 +61,10 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
             .setName('Preserve Labels')
             .setDesc('Keep LaTeX labels for cross-referencing')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.getSettings().preserveLabels)
+                .setValue(!this.plugin.getSettings().labelAndReference.removeLabels)
                 .onChange(async (value) => {
                     const settings = this.plugin.getSettings();
-                    settings.preserveLabels = value;
+                    settings.labelAndReference.removeLabels = !value;
                     this.plugin.setSettings(settings);
                     await this.plugin.saveSettings();
                 }));
