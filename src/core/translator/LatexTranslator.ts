@@ -1,5 +1,5 @@
 import { TFile } from 'obsidian';
-import parseLatexToObsidian, { ParserOptions } from '../parser/latexParser';
+import LatexParser, { ParserOptions } from '../parser/latexParser';
 import { LatexTranslatorSettings, settingsToParserOptions } from '../../settings/settings';
 import { CommandHistory } from '../history/commandHistory';
 import { ErrorReport } from '../error/ErrorReport';
@@ -30,24 +30,26 @@ export class LatexTranslator {
     async translateContent(
         content: string,
         file?: TFile,
-        customOptions?: Partial<ParserOptions>
+        customOptions: Partial<Omit<ParserOptions, 'direction'>> = {}
     ): Promise<{ 
         translatedContent: string;
         error?: ErrorReport;
     }> {
         const startTime = Date.now();
-        const commandId = crypto.randomUUID();
+        const commandId = Math.random().toString(36).substring(7);
 
         try {
-            // Merge default options from settings with any custom options
-            const baseOptions = settingsToParserOptions(this.settings);
-            const options: ParserOptions = {
-                ...baseOptions,
-                ...customOptions
+            // Merge default options from settings with custom options
+            const defaultOptions = settingsToParserOptions(this.settings);
+            const options: ParserOptions = { 
+                ...defaultOptions,
+                ...customOptions,
+                direction: defaultOptions.direction
             };
 
             // Perform the translation
-            const translatedContent = parseLatexToObsidian(content, options);
+            const parser = new LatexParser();
+            const translatedContent = parser.parseLatexToObsidian(content, options);
 
             // Record successful translation in history
             this.commandHistory.addEntry({
@@ -85,7 +87,10 @@ export class LatexTranslator {
                 commandName: 'translate',
                 selectionLength: content.length,
                 success: false,
-                options: customOptions || settingsToParserOptions(this.settings),
+                options: {
+                    ...settingsToParserOptions(this.settings),
+                    ...customOptions
+                },
                 duration: Date.now() - startTime,
                 conversionStats: {
                     mathCount: 0,
