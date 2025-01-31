@@ -3,9 +3,9 @@ import { CommandHistory, CommandStatistics, ProductivityStats } from '../../core
 
 export class LatexStatusBar {
     private element: HTMLElement;
-    private iconEl: HTMLElement;
-    private textEl: HTMLElement;
-    private tooltipEl: HTMLElement;
+    private iconEl!: HTMLElement;
+    private textEl!: HTMLElement;
+    private tooltipEl!: HTMLElement;
     private history: CommandHistory;
     private updateInterval: number;
 
@@ -87,8 +87,8 @@ export class LatexStatusBar {
     }
 
     private updateTooltip() {
-        const stats = this.history.getStatistics();
-        const productivity = this.history.getProductivityStats();
+        const stats: CommandStatistics = this.history.getStatistics();
+        const productivity: ProductivityStats = this.history.getProductivityStats();
         const lastEntry = this.history.getLastEntry();
 
         this.tooltipEl.empty();
@@ -96,14 +96,37 @@ export class LatexStatusBar {
         // Create tooltip content
         const content = this.tooltipEl.createDiv('tooltip-content');
         
-        // Add statistics
-        content.createEl('div', { text: `Total Commands: ${stats.totalCommands}` });
-        content.createEl('div', { text: `Success Rate: ${Math.round((stats.successfulCommands / stats.totalCommands) * 100)}%` });
+        // Command Statistics Section
+        content.createEl('div', { text: 'Command Statistics', cls: 'tooltip-header' });
+        content.createEl('div', { text: `Total Commands: ${this.formatNumber(stats.totalCommands)}` });
+        content.createEl('div', { text: `Success Rate: ${this.formatNumber(Math.round((stats.successfulCommands / stats.totalCommands) * 100))}%` });
+        content.createEl('div', { text: `Failed Commands: ${this.formatNumber(stats.failedCommands)}` });
+        content.createEl('div', { text: `Average Selection Length: ${this.formatNumber(stats.averageSelectionLength)} chars` });
 
-        // Add last command info
+        // Time Statistics Section
+        content.createEl('hr');
+        content.createEl('div', { text: 'Time Statistics', cls: 'tooltip-header' });
+        if (stats.averageDuration) {
+            content.createEl('div', { text: `Average Duration: ${this.formatTime(stats.averageDuration)}` });
+        }
+        content.createEl('div', { text: `Processing Time: ${this.formatTime(productivity.averageProcessingTime)}` });
+        content.createEl('div', { text: `Uptime: ${this.formatTime(productivity.uptime)}` });
+        content.createEl('div', { text: `Commands Per Hour: ${this.formatNumber(productivity.commandsPerHour)}` });
+        content.createEl('div', { text: `Peak Hour: ${productivity.peakHour}:00` });
+
+        // Conversion Statistics Section
+        content.createEl('hr');
+        content.createEl('div', { text: 'Conversion Statistics', cls: 'tooltip-header' });
+        content.createEl('div', { text: `Total Content Processed: ${this.formatNumber(productivity.totalContentProcessed)} chars` });
+        content.createEl('div', { text: `Math Per Command: ${this.formatNumber(productivity.conversionEfficiency.mathPerCommand)}` });
+        content.createEl('div', { text: `Citations Per Command: ${this.formatNumber(productivity.conversionEfficiency.citationsPerCommand)}` });
+        content.createEl('div', { text: `Environments Per Command: ${this.formatNumber(productivity.conversionEfficiency.environmentsPerCommand)}` });
+        content.createEl('div', { text: `References Per Command: ${this.formatNumber(productivity.conversionEfficiency.referencesPerCommand)}` });
+
+        // Last Command Section
         if (lastEntry) {
             content.createEl('hr');
-            content.createEl('div', { text: 'Last Command:' });
+            content.createEl('div', { text: 'Last Command', cls: 'tooltip-header' });
             content.createEl('div', { text: lastEntry.commandName });
             content.createEl('div', { 
                 text: `Status: ${lastEntry.success ? 'Success' : 'Failed'}`,

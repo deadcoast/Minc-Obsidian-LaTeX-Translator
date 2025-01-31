@@ -106,15 +106,23 @@ export class ErrorRecovery {
      * Check if an environment can be nested inside another
      */
     static canNest(outer: string, inner: string): boolean {
+        // Define the type for valid nesting rules
+        type ValidNestingRules = {
+            align: string[];
+            equation: string[];
+            gather: string[];
+            multline: string[];
+        };
+
         // Get valid nesting rules from the environment configuration
-        const validNesting = {
+        const validNesting: ValidNestingRules = {
             'align': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
             'equation': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
             'gather': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix'],
             'multline': ['matrix', 'pmatrix', 'bmatrix', 'Bmatrix', 'vmatrix', 'Vmatrix']
         };
 
-        return validNesting[outer]?.includes(inner) || false;
+        return (outer in validNesting) ? validNesting[outer as keyof ValidNestingRules].includes(inner) : false;
     }
 
     /**

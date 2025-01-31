@@ -2,12 +2,13 @@ import { Editor, EditorPosition } from 'obsidian';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { Decoration, EditorView } from '@codemirror/view';
 import { StateEffect, RangeSet } from '@codemirror/state';
+import { ErrorSeverity } from '../../core/error/ErrorHandler';
 
 interface ErrorRange {
     from: EditorPosition;
     to: EditorPosition;
     message: string;
-    severity?: string;
+    severity?: ErrorSeverity;
 }
 
 export class ErrorHighlighter {
@@ -35,11 +36,11 @@ export class ErrorHighlighter {
 
         // Filter by severity if needed
         const filteredErrors = groupedErrors.filter(error => 
-            this.shouldShowError(error.severity || 'error')
+            this.shouldShowError(error.severity)
         );
 
         filteredErrors.forEach(error => {
-            const className = this.getErrorClassName(error.severity || 'error');
+            const className = this.getErrorClassName(error.severity);
             
             switch (this.settings.uiSettings.errorHighlightStyle) {
                 case 'underline':
@@ -64,16 +65,25 @@ export class ErrorHighlighter {
         });
     }
 
-    private getErrorClassName(severity: string): string {
-        const style = this.settings.uiSettings.errorHighlightStyle;
-        const color = this.settings.uiSettings.errorHighlightColor;
-        return `latex-translator-error-${style} latex-translator-error-${severity} latex-translator-error-${color}`;
+    private getErrorClassName(severity: ErrorSeverity | undefined): string {
+        const effectiveSeverity = severity ?? ErrorSeverity.ERROR;
+        return `latex-translator-error-${effectiveSeverity}`;
     }
 
-    private shouldShowError(severity: string): boolean {
-        const minSeverity = this.settings.uiSettings.errorMinSeverity;
-        const severityLevels = ['info', 'warning', 'error'];
-        return severityLevels.indexOf(severity) >= severityLevels.indexOf(minSeverity);
+    private shouldShowError(severity: ErrorSeverity | undefined): boolean {
+        // If severity is undefined, treat it as INFO level
+        const effectiveSeverity = severity ?? ErrorSeverity.INFO;
+        
+        const minSeverity = this.settings.uiSettings.errorMinSeverity ?? 'warning';
+        const minSeverityEnum = ErrorSeverity[minSeverity.toUpperCase() as keyof typeof ErrorSeverity];
+        
+        const severityLevels: ErrorSeverity[] = [
+            ErrorSeverity.INFO,
+            ErrorSeverity.WARNING,
+            ErrorSeverity.ERROR,
+            ErrorSeverity.CRITICAL
+        ];
+        return severityLevels.indexOf(effectiveSeverity) >= severityLevels.indexOf(minSeverityEnum);
     }
 
     private groupErrors(errors: ErrorRange[]): ErrorRange[] {

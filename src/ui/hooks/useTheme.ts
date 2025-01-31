@@ -1,6 +1,6 @@
 // src/hooks/useTheme.ts
 import { useEffect, useState } from 'react';
-import { useApp } from '../hooks';
+import { useApp } from './useApp';
 
 type Theme = 'light' | 'dark';
 

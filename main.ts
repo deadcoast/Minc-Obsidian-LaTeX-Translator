@@ -18,6 +18,9 @@ import { LatexView, LATEX_VIEW_TYPE } from '@views/LatexView';
 import { logger } from '@utils/logger';
 import { LatexTranslatorSettings, DEFAULT_SETTINGS } from './src/settings/settings';
 
+const isObject = (item: any): item is Record<string, any> =>
+    item && typeof item === 'object' && !Array.isArray(item);
+
 export default class LatexTranslatorPlugin extends Plugin {
     private parser!: LatexParser;
     public settings!: LatexTranslatorSettings;
@@ -327,8 +330,49 @@ export default class LatexTranslatorPlugin extends Plugin {
         return file instanceof TFolder;
     }
 
+    private deepMerge(target: any, source: any): any {
+        // If either target or source is not an object, return source
+        if (!isObject(target) || !isObject(source)) {
+            return source;
+        }
+
+        const output = { ...target };
+        
+        // Ensure all keys from DEFAULT_SETTINGS exist in output
+        Object.keys(source).forEach(key => {
+            if (isObject(source[key])) {
+                // If key doesn't exist in target, initialize it with empty object
+                if (!(key in target)) {
+                    output[key] = {};
+                }
+                // Always recursively merge objects
+                output[key] = this.deepMerge(target[key], source[key]);
+            } else if (Array.isArray(source[key])) {
+                // For arrays, create a new array with source values
+                output[key] = [...source[key]];
+            } else {
+                // For primitive values, use source value
+                output[key] = source[key];
+            }
+        });
+        
+        return output;
+    }
+
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        const savedData = await this.loadData() || {};
+        
+        // Ensure labelAndReference exists and has all required properties
+        if (!savedData.labelAndReference) {
+            savedData.labelAndReference = DEFAULT_SETTINGS.labelAndReference;
+        } else {
+            // Ensure autoNumbering exists and has all required properties
+            if (!savedData.labelAndReference.autoNumbering) {
+                savedData.labelAndReference.autoNumbering = DEFAULT_SETTINGS.labelAndReference.autoNumbering;
+            }
+        }
+        
+        this.settings = this.deepMerge(DEFAULT_SETTINGS, savedData);
     }
 
     async saveSettings() {

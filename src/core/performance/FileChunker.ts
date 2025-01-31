@@ -222,9 +222,15 @@ export class FileChunker {
         const hasMath = FileChunker.MATH_BLOCK_REGEX.test(chunk);
         const hasCode = FileChunker.CODE_BLOCK_REGEX.test(chunk);
 
-        if (hasMath && hasCode) return 'mixed';
-        if (hasMath) return 'math';
-        if (hasCode) return 'code';
+        if (hasMath && hasCode) {
+          return 'mixed';
+        }
+        if (hasMath) {
+          return 'math';
+        }
+        if (hasCode) {
+          return 'code';
+        }
         return 'text';
     }
 
@@ -232,9 +238,15 @@ export class FileChunker {
         currentType: 'text' | 'math' | 'code' | 'mixed',
         newType: 'text' | 'math' | 'code'
     ): 'text' | 'math' | 'code' | 'mixed' {
-        if (currentType === 'mixed') return 'mixed';
-        if (currentType === newType) return currentType;
-        if (currentType === 'text') return newType;
+        if (currentType === 'mixed') {
+          return 'mixed';
+        }
+        if (currentType === newType) {
+          return currentType;
+        }
+        if (currentType === 'text') {
+          return newType;
+        }
         return 'mixed';
     }
 
@@ -242,6 +254,16 @@ export class FileChunker {
         chunks: string[],
         metadata: ChunkMetadata[]
     ): Promise<string> {
-        return chunks.join('');
+        if (chunks.length !== metadata.length) {
+            throw new Error('Chunks and metadata arrays must have matching lengths');
+        }
+        
+        // Sort chunks by startLine to ensure correct order
+        const sortedPairs = metadata.map((meta, index) => ({
+            chunk: chunks[index],
+            metadata: meta
+        })).sort((a, b) => a.metadata.startLine - b.metadata.startLine);
+        
+        return sortedPairs.map(pair => pair.chunk).join('');
     }
 }

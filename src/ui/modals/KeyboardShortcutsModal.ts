@@ -15,7 +15,7 @@ export class KeyboardShortcutsModal extends Modal {
         const shortcutsList = contentEl.createDiv('keyboard-shortcuts-list');
 
         // Quick Actions
-        const quickSection = this.createShortcutSection(shortcutsList, 'Quick Actions', [
+        this.createShortcutSection(shortcutsList, 'Quick Actions', [
             ['Mod+L', 'Quick Convert'],
             ['Mod+Shift+L', 'Convert File'],
             ['Mod+Alt+Z', 'Undo Last'],
@@ -24,7 +24,7 @@ export class KeyboardShortcutsModal extends Modal {
         ]);
 
         // Specific Conversions
-        const conversionSection = this.createShortcutSection(shortcutsList, 'Specific Conversions', [
+        this.createShortcutSection(shortcutsList, 'Specific Conversions', [
             ['Mod+Alt+M', 'Convert Math'],
             ['Mod+Alt+C', 'Convert Citations'],
             ['Mod+Alt+R', 'Convert References'],
@@ -33,7 +33,7 @@ export class KeyboardShortcutsModal extends Modal {
         ]);
 
         // Tools & Statistics
-        const toolsSection = this.createShortcutSection(shortcutsList, 'Tools & Statistics', [
+        this.createShortcutSection(shortcutsList, 'Tools & Statistics', [
             ['Mod+Alt+S', 'Show Statistics'],
             ['Mod+,', 'Open Settings'],
             ['Mod+Alt+H', 'Command History'],
@@ -41,7 +41,7 @@ export class KeyboardShortcutsModal extends Modal {
         ]);
 
         // Note about platform-specific modifier keys
-        const note = contentEl.createEl('p', {
+        contentEl.createEl('p', {
             text: 'Note: "Mod" key is Command (⌘) on macOS and Control on Windows/Linux',
             cls: 'setting-item-description'
         });

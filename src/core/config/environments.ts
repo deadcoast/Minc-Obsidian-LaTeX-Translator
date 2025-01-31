@@ -15,6 +15,11 @@ export interface TheoremEnvironmentConfig extends EnvironmentConfig {
     calloutType: string;
     icon: string;
     color: string;
+    name?: string;
+    counter: number;
+    prefix?: string;
+    parent?: string;
+    shared_counter: boolean;
 }
 
 export interface MathOperator {
@@ -132,6 +137,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'theorem',
         icon: '🔍',
         color: 'blue',
+        name: 'Theorem',
+        counter: 1,
+        prefix: 'Thm.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Theorem environment'
     },
     'lemma': {
@@ -142,6 +152,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'lemma',
         icon: '📝',
         color: 'blue',
+        name: 'Lemma',
+        counter: 1,
+        prefix: 'Lem.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Lemma environment'
     },
     'proposition': {
@@ -152,6 +167,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'proposition',
         icon: '💡',
         color: 'blue',
+        name: 'Proposition',
+        counter: 1,
+        prefix: 'Prop.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Proposition environment'
     },
     'corollary': {
@@ -162,6 +182,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'corollary',
         icon: '✨',
         color: 'blue',
+        name: 'Corollary',
+        counter: 1,
+        prefix: 'Cor.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Corollary environment'
     },
     'definition': {
@@ -172,6 +197,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'definition',
         icon: '📚',
         color: 'green',
+        name: 'Definition',
+        counter: 1,
+        prefix: 'Def.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Definition environment'
     },
     'example': {
@@ -182,6 +212,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'example',
         icon: '🔎',
         color: 'yellow',
+        name: 'Example',
+        counter: 1,
+        prefix: 'Ex.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Example environment'
     },
     'proof': {
@@ -192,6 +227,11 @@ export const THEOREM_ENVIRONMENTS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'proof',
         icon: '✏️',
         color: 'purple',
+        name: 'Proof',
+        counter: 0,
+        prefix: '',
+        parent: '',
+        shared_counter: false,
         description: 'Proof environment'
     }
 };
@@ -206,6 +246,11 @@ export const THEOREM_MAPPINGS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'theorem',
         icon: '📝',
         color: 'blue',
+        name: 'Theorem',
+        counter: 1,
+        prefix: 'Thm.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Theorem environment'
     },
     'lemma': {
@@ -216,6 +261,11 @@ export const THEOREM_MAPPINGS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'lemma',
         icon: '📌',
         color: 'green',
+        name: 'Lemma',
+        counter: 1,
+        prefix: 'Lem.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Lemma environment'
     },
     'corollary': {
@@ -226,6 +276,11 @@ export const THEOREM_MAPPINGS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'corollary',
         icon: '🔍',
         color: 'purple',
+        name: 'Corollary',
+        counter: 1,
+        prefix: 'Cor.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Corollary environment'
     },
     'definition': {
@@ -236,6 +291,11 @@ export const THEOREM_MAPPINGS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'definition',
         icon: '📖',
         color: 'cyan',
+        name: 'Definition',
+        counter: 1,
+        prefix: 'Def.',
+        parent: 'chapter',
+        shared_counter: false,
         description: 'Definition environment'
     },
     'remark': {
@@ -246,6 +306,11 @@ export const THEOREM_MAPPINGS: Record<string, TheoremEnvironmentConfig> = {
         calloutType: 'remark',
         icon: '💡',
         color: 'yellow',
+        name: 'Remark',
+        counter: 0,
+        prefix: '',
+        parent: '',
+        shared_counter: false,
         description: 'Remark environment'
     }
 };

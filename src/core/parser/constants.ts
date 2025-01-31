@@ -473,6 +473,18 @@ export const ARRAY_COLUMN_TYPES: ArrayColumnTypes = {
     '|': { align: null, border: true }
 };
 
+// Obsidian theorem callout mappings
+export const OBSIDIAN_THEOREM_CALLOUTS = {
+    theorem: 'info',
+    lemma: 'info',
+    proposition: 'info',
+    corollary: 'success',
+    definition: 'note',
+    example: 'example',
+    remark: 'quote',
+    proof: 'warning'
+} as const;
+
 // Cross-reference formats
 export const CROSS_REF_FORMATS = {
     'ref': { format: '\\text{($label)}' },

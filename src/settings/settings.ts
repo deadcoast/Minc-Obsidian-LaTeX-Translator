@@ -24,11 +24,6 @@ export interface BatchOperationSettings {
   };
 }
 
-export interface UISettings {
-  autoExpandLogEntries: boolean;
-  minimumBatchSize: number;  // Minimum number of operations to show progress bar
-}
-
 export interface LatexTranslatorSettings {
   direction: 'latex-to-obsidian' | 'obsidian-to-latex';
 
@@ -36,6 +31,19 @@ export interface LatexTranslatorSettings {
     enabled: boolean;
     customMappings: Record<string, string>;
     preserveOriginalOnUnknown: boolean;
+  };
+
+  labelAndReference: {
+    removeLabels: boolean;
+    preserveLabels: boolean;
+    referenceHandling: 'ignore' | 'placeholder' | 'autoNumber' | 'text';
+    customReferenceFormats: Record<string, string>;
+    autoNumbering: {
+      startEquation: number;
+      startFigure: number;
+      startTable: number;
+      startSection: number;
+    };
   };
 
   showNotifications: boolean;
@@ -50,20 +58,8 @@ export interface LatexTranslatorSettings {
     useDoubleBackslash: boolean;
   };
 
-  labelAndReference: {
-    removeLabels: boolean;
-    referenceHandling: 'ignore' | 'placeholder' | 'autoNumber' | 'text';
-    customReferenceFormats: Record<string, string>;
-    autoNumbering: {
-      startEquation: number;
-      startFigure: number;
-      startTable: number;
-      startSection: number;
-    };
-  };
-
   citation: {
-    enabled: boolean;
+    citationEnabled: boolean;
     defaultFormat: string;
     customFormats: Record<string, string>;
   };
@@ -102,15 +98,7 @@ export interface LatexTranslatorSettings {
     logRetentionDays?: number;
     logExportFormat?: 'text' | 'json' | 'csv';
     logSearchEnabled?: boolean;
-    logFilterPresets?: {
-      name: string;
-      filter: {
-        types?: string[];
-        severity?: string[];
-        dateRange?: [number, number];
-        search?: string;
-      };
-    }[];
+    logFilterPresets?: any[];
 
     showProgressBar?: boolean;
     showStatusBarInfo?: boolean;
@@ -157,7 +145,7 @@ export interface LatexTranslatorSettings {
     previewLineHeight?: number;
     previewFontFamily?: string;
     customPreviewStyles?: {
-      enabled: boolean;
+      previewStylesEnabled: boolean;
       css: string;
     };
 
@@ -175,7 +163,7 @@ export interface LatexTranslatorSettings {
     logCollapsibleGroups?: boolean;
     logSearchHistory?: boolean;
     logFilterRules?: {
-      enabled: boolean;
+      filterRulesEnabled: boolean;
       rules: Array<{
         field: string;
         operator: 'contains' | 'equals' | 'startsWith' | 'endsWith' | 'regex';
@@ -207,7 +195,7 @@ export interface LatexTranslatorSettings {
     progressNotificationDuration?: number;
     progressAnimationSequence?: ('fade' | 'scale' | 'slide' | 'spin')[];
     progressParticleEffects?: {
-      enabled: boolean;
+      particleEffectsEnabled: boolean;
       density: number;
       speed: number;
       colors: string[];
@@ -248,11 +236,11 @@ export interface LatexTranslatorSettings {
     errorDiagnosticsDisplay?: 'tooltip' | 'panel' | 'inline';
     errorGroupingStrategy?: 'type' | 'severity' | 'location' | 'custom';
     customErrorStyles?: {
-      enabled: boolean;
+      errorStylesEnabled: boolean;
       css: string;
     };
     errorAnimationEffects?: {
-      enabled: boolean;
+      animationEffectsEnabled: boolean;
       duration: number;
       style: 'flash' | 'bounce' | 'shake' | 'custom';
     };
@@ -269,21 +257,21 @@ export interface LatexTranslatorSettings {
       documentOutline: boolean;
     };
     previewInteractivity?: {
-      enabled: boolean;
+      interactivityEnabled: boolean;
       clickableLinks: boolean;
       editableBlocks: boolean;
       dragAndDrop: boolean;
       contextMenu: boolean;
     };
     previewAutoFormatting?: {
-      enabled: boolean;
+      autoFormattingEnabled: boolean;
       indentation: boolean;
       alignment: boolean;
       spacing: boolean;
       lists: boolean;
     };
     previewCustomizations?: {
-      enabled: boolean;
+      customizationsEnabled: boolean;
       theme: string;
       fontSize: number;
       lineHeight: number;
@@ -303,21 +291,21 @@ export interface LatexTranslatorSettings {
       smartAlerts: boolean;
     };
     logAnalyticsOptions?: {
-      enabled: boolean;
+      analyticsEnabled: boolean;
       errorTrends: boolean;
       performanceMetrics: boolean;
       userActions: boolean;
       systemEvents: boolean;
     };
     logVisualizationTypes?: {
-      enabled: boolean;
+      visualizationEnabled: boolean;
       timeline: boolean;
       heatmap: boolean;
       errorDistribution: boolean;
       performanceGraphs: boolean;
     };
     logAlertRules?: {
-      enabled: boolean;
+      alertRulesEnabled: boolean;
       rules: Array<{
         condition: string;
         threshold: number;
@@ -327,7 +315,7 @@ export interface LatexTranslatorSettings {
       }>;
     };
     logRetentionPolicy?: {
-      enabled: boolean;
+      retentionEnabled: boolean;
       maxEntries: number;
       maxAge: number;
       compressionEnabled: boolean;
@@ -340,37 +328,29 @@ export interface LatexTranslatorSettings {
 
 export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   direction: 'latex-to-obsidian',
-
+  
   environmentConversion: {
     enabled: true,
-    customMappings: {
-      'equation': '$$',
-      'align': '$$',
-      'gather': '$$',
-      'matrix': '$$',
-      'bmatrix': '$$',
-      'pmatrix': '$$',
-      'cases': '$$'
-      // Additional custom mappings can be added here
-    },
+    customMappings: {},
     preserveOriginalOnUnknown: true
   },
 
   showNotifications: true,
   useCallouts: true,
   renderImmediately: true,
-  autoNumberEquations: false,
+  autoNumberEquations: true,
 
   bracketReplacement: {
     convertDisplayMath: true,
     convertInlineMath: true,
-    preserveSingleDollar: true,
-    useDoubleBackslash: true
+    preserveSingleDollar: false,
+    useDoubleBackslash: false
   },
 
   labelAndReference: {
     removeLabels: false,
-    referenceHandling: 'placeholder',
+    preserveLabels: true,
+    referenceHandling: 'autoNumber',
     customReferenceFormats: {},
     autoNumbering: {
       startEquation: 1,
@@ -381,14 +361,14 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   },
 
   citation: {
-    enabled: true,
-    defaultFormat: '[cite: $key]',
+    citationEnabled: true,
+    defaultFormat: '[@$key]',
     customFormats: {}
   },
 
   advanced: {
     expandMacros: true,
-    removeLeftRight: true,
+    removeLeftRight: false,
     unifyTextToMathrm: true,
     debugLogging: false
   },
@@ -403,21 +383,21 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
     previewLineNumbers: true,
     previewSyncScroll: true,
     previewShowDiff: true,
-
+    
     showErrorNotifications: true,
     showWarningNotifications: true,
     inlineErrorHighlighting: true,
-    errorHighlightStyle: 'underline',
+    errorHighlightStyle: 'squiggly',
     errorHighlightColor: 'red',
     errorNotificationDuration: 5000,
     errorGrouping: 'type',
     errorMinSeverity: 'warning',
 
     showConversionLogs: true,
-    logDetailLevel: 'basic',
+    logDetailLevel: 'detailed',
     maxLogEntries: 1000,
-    autoExpandLogEntries: true,
-    logRetentionDays: 30,
+    autoExpandLogEntries: false,
+    logRetentionDays: 7,
     logExportFormat: 'text',
     logSearchEnabled: true,
     logFilterPresets: [],
@@ -425,8 +405,8 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
     showProgressBar: true,
     showStatusBarInfo: true,
     showCommandCount: true,
-    minimumBatchSize: 10,  // Default value for minimum batch size
-    progressBarStyle: 'detailed',
+    minimumBatchSize: 10,
+    progressBarStyle: 'minimal',
     progressBarPosition: 'notice',
     progressBarTheme: 'default',
     showEstimatedTime: true,
@@ -439,35 +419,35 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
     enableProgressGlow: true,
     showProgressSpinner: true,
     useProgressGradients: true,
-    progressCompletionEffect: 'fade',
+    progressCompletionEffect: 'confetti',
 
     enableCustomErrorPatterns: true,
     errorPatternStyle: 'dotted',
-    errorBackgroundOpacity: 0.15,
+    errorBackgroundOpacity: 0.2,
     showErrorIcons: true,
     errorIconPosition: 'left',
     errorLineHighlight: true,
     errorMarginMarkers: true,
     customErrorColors: {
-      syntax: '#ff5555',
-      semantic: '#ffb86c',
-      style: '#bd93f9',
-      warning: '#f1fa8c',
-      info: '#8be9fd'
+      syntax: '#000',
+      semantic: '#666',
+      style: '#999',
+      warning: '#ff0',
+      info: '#0ff'
     },
 
     enablePreviewFeatures: true,
-    previewSplitView: false,
+    previewSplitView: true,
     previewSyncHighlight: true,
     previewAutoScroll: true,
     previewSearchHighlight: true,
     previewCodeFolding: true,
-    previewMinimap: false,
+    previewMinimap: true,
     previewWordWrap: true,
-    previewLineHeight: 1.6,
+    previewLineHeight: 1.5,
     previewFontFamily: 'monospace',
     customPreviewStyles: {
-      enabled: true,
+      previewStylesEnabled: true,
       css: ''
     },
 
@@ -478,45 +458,63 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
       error: true,
       warning: true,
       info: true,
-      debug: false
+      debug: true
     },
     logTimestampFormat: 'simple',
     logColorCoding: true,
     logCollapsibleGroups: true,
     logSearchHistory: true,
     logFilterRules: {
-      enabled: true,
+      filterRulesEnabled: true,
       rules: []
     },
     logExportOptions: {
       includeMetadata: true,
       formatOutput: true,
       includeTimestamps: true,
-      includeStackTraces: false
+      includeStackTraces: true
     },
 
     enableAdvancedProgressEffects: true,
     progressCompletionEffects: {
       confetti: true,
       sound: true,
-      vibration: false,
+      vibration: true,
       notification: true,
       fireworks: true,
       sparkles: true,
       checkmark: true
     },
     progressEffectStyle: 'moderate',
-    progressSoundEffect: 'success',
+    progressSoundEffect: 'ding',
     customProgressSound: '',
-    progressVibrationPattern: [100, 50, 100],
-    progressNotificationDuration: 3000,
-    progressAnimationSequence: ['fade', 'scale'],
+    progressVibrationPattern: [100, 200, 300],
+    progressNotificationDuration: 5000,
+    progressAnimationSequence: ['fade', 'scale', 'slide'],
     progressParticleEffects: {
-      enabled: true,
-      density: 50,
-      speed: 1,
-      colors: ['#ff0000', '#00ff00', '#0000ff']
-      // Additional properties can be added if needed
+      particleEffectsEnabled: true,
+      density: 10,
+      speed: 5,
+      colors: ['#f00', '#0f0', '#00f'],
+      type: 'circle',
+      spread: 100,
+      particleCount: 100,
+      particleSize: 5,
+      particleSpeed: 5,
+      particleGravity: 0.1,
+      particleFriction: 0.9,
+      particleRotation: true,
+      particleTorque: 0.1,
+      particleLifetime: 1000,
+      particleBlending: true,
+      particleShape: 'circle',
+      particleOpacity: 1,
+      particleGlow: true,
+      particleTrail: true,
+      particleTrailLength: 10,
+      particleTrailWidth: 2,
+      particleTrailColor: '#fff',
+      particleTrailOpacity: 1
     },
 
     enableAdvancedErrorVisualization: true,
@@ -528,18 +526,18 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
       miniDiagnostics: true,
       contextualHints: true,
       smartGrouping: true,
-      errorDensityMap: false
+      errorDensityMap: true
     },
-    errorBadgePosition: 'margin',
+    errorBadgePosition: 'inline',
     errorPreviewTrigger: 'hover',
     errorDiagnosticsDisplay: 'tooltip',
     errorGroupingStrategy: 'type',
     customErrorStyles: {
-      enabled: false,
+      errorStylesEnabled: true,
       css: ''
     },
     errorAnimationEffects: {
-      enabled: true,
+      animationEffectsEnabled: true,
       duration: 500,
       style: 'flash'
     },
@@ -556,25 +554,25 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
       documentOutline: true
     },
     previewInteractivity: {
-      enabled: true,
+      interactivityEnabled: true,
       clickableLinks: true,
-      editableBlocks: false,
+      editableBlocks: true,
       dragAndDrop: true,
       contextMenu: true
     },
     previewAutoFormatting: {
-      enabled: true,
+      autoFormattingEnabled: true,
       indentation: true,
       alignment: true,
       spacing: true,
       lists: true
     },
     previewCustomizations: {
-      enabled: true,
-      theme: 'default',
+      customizationsEnabled: true,
+      theme: 'light',
       fontSize: 14,
-      lineHeight: 1.6,
-      fontFamily: '',
+      lineHeight: 1.5,
+      fontFamily: 'monospace',
       customCSS: ''
     },
 
@@ -585,31 +583,31 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
       logAnalytics: true,
       logVisualization: true,
       customViews: true,
-      automatedReports: false,
+      automatedReports: true,
       logAggregation: true,
       smartAlerts: true
     },
     logAnalyticsOptions: {
-      enabled: true,
+      analyticsEnabled: true,
       errorTrends: true,
       performanceMetrics: true,
       userActions: true,
       systemEvents: true
     },
     logVisualizationTypes: {
-      enabled: true,
+      visualizationEnabled: true,
       timeline: true,
       heatmap: true,
       errorDistribution: true,
       performanceGraphs: true
     },
     logAlertRules: {
-      enabled: true,
+      alertRulesEnabled: true,
       rules: []
     },
     logRetentionPolicy: {
-      enabled: true,
-      maxEntries: 10000,
+      retentionEnabled: true,
+      maxEntries: 1000,
       maxAge: 30,
       compressionEnabled: true,
       backupEnabled: true
@@ -617,19 +615,19 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   },
 
   batchOperations: {
-    recursive: true,
+    recursive: false,
     skipExisting: true,
     createBackups: true,
     notifyOnCompletion: true,
-    errorThreshold: 0.2,
+    errorThreshold: 10,
     autoSaveErrorReports: true,
-    errorReportLocation: 'latex-translator/error-reports',
+    errorReportLocation: '',
     maxConcurrentFiles: 5,
     processDelay: 100,
     hotkeys: {
-      openBatchModal: 'mod+shift+b',
-      quickBatchCurrentFolder: 'mod+shift+f',
-      quickBatchVault: 'mod+shift+v'
+      openBatchModal: '',
+      quickBatchCurrentFolder: '',
+      quickBatchVault: ''
     }
   }
 };
@@ -643,7 +641,7 @@ export function settingsToParserOptions(settings: LatexTranslatorSettings): Pars
     removeLabels: settings.labelAndReference.removeLabels,
     handleRefs: settings.labelAndReference.referenceHandling === 'autoNumber' ? 'resolve' : 'placeholder',
     expandMacros: settings.advanced.expandMacros,
-    convertCitations: settings.citation.enabled,
+    convertCitations: settings.citation.citationEnabled,
     removeLeftRight: settings.advanced.removeLeftRight,
     unifyTextToMathrm: settings.advanced.unifyTextToMathrm
   };
@@ -806,11 +804,12 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
           .addOptions({
               'ignore': 'Ignore References',
               'placeholder': 'Use Placeholders',
-              'autoNumber': 'Auto-numbering'
+              'autoNumber': 'Auto-numbering',
+              'text': 'Text'
           })
           .setValue(this.plugin.getSettings().labelAndReference.referenceHandling)
           .onChange(async (value) => {
-              this.plugin.getSettings().labelAndReference.referenceHandling = value as 'ignore' | 'placeholder' | 'autoNumber';
+              this.plugin.getSettings().labelAndReference.referenceHandling = value as 'ignore' | 'placeholder' | 'autoNumber' | 'text';
               await this.plugin.saveSettings();
           }));
 
@@ -824,6 +823,79 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
               this.plugin.getSettings().labelAndReference.removeLabels = value;
               await this.plugin.saveSettings();
           }));
+
+    // Preserve Labels
+    new Setting(containerEl)
+      .setName('Preserve Labels')
+      .setDesc('Preserve LaTeX labels during conversion')
+      .addToggle(toggle => toggle
+          .setValue(this.plugin.getSettings().labelAndReference.preserveLabels)
+          .onChange(async (value) => {
+              this.plugin.getSettings().labelAndReference.preserveLabels = value;
+              await this.plugin.saveSettings();
+          }));
+
+    // Auto Numbering
+    const autoNumberingContainer = containerEl.createDiv();
+    new Setting(autoNumberingContainer)
+      .setName('Auto Numbering')
+      .setDesc('Auto-numbering settings');
+
+    new Setting(autoNumberingContainer)
+      .setName('Start Equation')
+      .setDesc('Starting number for equations')
+      .addText(text => text
+        .setPlaceholder('1')
+        .setValue(String(this.plugin.getSettings().labelAndReference.autoNumbering.startEquation))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num)) {
+            this.plugin.getSettings().labelAndReference.autoNumbering.startEquation = num;
+            await this.plugin.saveSettings();
+          }
+        }));
+
+    new Setting(autoNumberingContainer)
+      .setName('Start Figure')
+      .setDesc('Starting number for figures')
+      .addText(text => text
+        .setPlaceholder('1')
+        .setValue(String(this.plugin.getSettings().labelAndReference.autoNumbering.startFigure))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num)) {
+            this.plugin.getSettings().labelAndReference.autoNumbering.startFigure = num;
+            await this.plugin.saveSettings();
+          }
+        }));
+
+    new Setting(autoNumberingContainer)
+      .setName('Start Table')
+      .setDesc('Starting number for tables')
+      .addText(text => text
+        .setPlaceholder('1')
+        .setValue(String(this.plugin.getSettings().labelAndReference.autoNumbering.startTable))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num)) {
+            this.plugin.getSettings().labelAndReference.autoNumbering.startTable = num;
+            await this.plugin.saveSettings();
+          }
+        }));
+
+    new Setting(autoNumberingContainer)
+      .setName('Start Section')
+      .setDesc('Starting number for sections')
+      .addText(text => text
+        .setPlaceholder('1')
+        .setValue(String(this.plugin.getSettings().labelAndReference.autoNumbering.startSection))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num)) {
+            this.plugin.getSettings().labelAndReference.autoNumbering.startSection = num;
+            await this.plugin.saveSettings();
+          }
+        }));
   }
 
   private addCitationSettings(containerEl: HTMLElement): void {
@@ -834,9 +906,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Enable Citations')
       .setDesc('Enable citation processing')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.getSettings().citation.enabled)
+          .setValue(this.plugin.getSettings().citation.citationEnabled)
           .onChange(async (value) => {
-              this.plugin.getSettings().citation.enabled = value;
+              this.plugin.getSettings().citation.citationEnabled = value;
               await this.plugin.saveSettings();
           }));
 
@@ -856,9 +928,9 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
       .setName('Convert Citations')
       .setDesc('Convert \\cite commands to Obsidian citations')
       .addToggle(toggle => toggle
-          .setValue(this.plugin.getSettings().citation.enabled)
+          .setValue(this.plugin.getSettings().citation.citationEnabled)
           .onChange(async (value) => {
-              this.plugin.getSettings().citation.enabled = value;
+              this.plugin.getSettings().citation.citationEnabled = value;
               await this.plugin.saveSettings();
           }));
   }

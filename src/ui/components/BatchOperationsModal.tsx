@@ -1,4 +1,4 @@
-import { App, Modal, Setting, TFolder } from 'obsidian';
+import { App, Modal, Notice, TFolder } from 'obsidian';
 import { BatchProcessor } from '../../core/batch/BatchProcessor';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { LatexTranslator } from '../../core/translator/LatexTranslator';

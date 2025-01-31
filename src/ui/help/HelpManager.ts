@@ -1,6 +1,5 @@
-import { App, Modal, MarkdownRenderer } from 'obsidian';
-import { HelpContent } from './HelpContent';
-import { HelpSection } from './HelpSection';
+import { App, Modal, MarkdownRenderer, Component, MarkdownView } from 'obsidian';
+import { HelpContent, HelpSection } from './HelpContent';
 
 export class HelpManager {
     private static instance: HelpManager;
@@ -21,9 +20,13 @@ export class HelpManager {
         new HelpModal(this.app, section).open();
     }
 
-    public async renderHelpContent(containerEl: HTMLElement, section?: string): Promise<void> {
-        const content = section ? HelpContent[section] : HelpContent.overview;
-        await MarkdownRenderer.renderMarkdown(content, containerEl, '', null);
+    public async renderHelpContent(containerEl: HTMLElement, section?: string, component?: Component): Promise<void> {
+        const content = section ? HelpContent[section as keyof typeof HelpContent] : HelpContent.overview;
+        const activeView = component ?? this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!activeView) {
+            throw new Error('No active markdown view found to render markdown');
+        }
+        await MarkdownRenderer.renderMarkdown(content, containerEl, '', activeView);
     }
 
     public getHelpSections(): HelpSection[] {
@@ -82,7 +85,7 @@ export class HelpModal extends Modal {
             const icon = item.createSpan({ cls: 'help-nav-icon' });
             icon.setAttribute('data-icon', section.icon);
             
-            const title = item.createSpan({ cls: 'help-nav-title', text: section.title });
+            item.createSpan({ cls: 'help-nav-title', text: section.title });
             
             item.addEventListener('click', () => {
                 this.switchSection(section.id);
@@ -97,7 +100,7 @@ export class HelpModal extends Modal {
 
     private async renderContent(containerEl: HTMLElement) {
         containerEl.empty();
-        await HelpManager.getInstance(this.app).renderHelpContent(containerEl, this.currentSection);
+        await HelpManager.getInstance(this.app).renderHelpContent(containerEl, this.currentSection, this as unknown as Component);
 
         // Add navigation buttons at the bottom
         const navButtons = containerEl.createDiv({ cls: 'help-nav-buttons' });
@@ -127,14 +130,14 @@ export class HelpModal extends Modal {
 
     private switchSection(sectionId: string) {
         this.currentSection = sectionId;
-        const contentEl = this.contentEl.querySelector('.help-content');
+        const contentEl = this.contentEl.querySelector('.help-content') as HTMLElement;
         if (contentEl) {
             this.renderContent(contentEl);
         }
     }
 
     private filterSections(query: string) {
-        const navItems = this.contentEl.querySelectorAll('.help-nav-item');
+        const navItems = this.contentEl.querySelectorAll<HTMLElement>('.help-nav-item');
         navItems.forEach(item => {
             const title = item.querySelector('.help-nav-title')?.textContent?.toLowerCase() || '';
             if (title.includes(query)) {

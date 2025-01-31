@@ -14,8 +14,8 @@ interface ProgressBarProps {
     showOperationDetails?: boolean;
     startTime?: number;
     operationDetails?: {
-        type: string;
-        currentItem: string;
+        type?: string;
+        currentItem?: string;
         speed: number;
     };
 }
@@ -175,7 +175,9 @@ export class GlobalProgress {
     }
 
     static update(props: GlobalProgressOptions): void {
-        if (!this.root) return;
+        if (!this.root) {
+          return;
+        }
         
         if (props.progress > 0) {
             this.operationDetails.processed.push(Date.now());

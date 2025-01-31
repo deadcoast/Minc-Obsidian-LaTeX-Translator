@@ -1,4 +1,17 @@
-import { debounce, throttle } from 'obsidian';
+import { debounce } from 'obsidian';
+import throttle from 'lodash.throttle';
+
+interface PerformanceMemory {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+}
+
+declare global {
+    interface Performance {
+        memory?: PerformanceMemory;
+    }
+}
 
 export interface PerformanceMetrics {
     memoryUsage: number;
@@ -24,6 +37,7 @@ export class PerformanceManager {
     private workers: Worker[] = [];
     private taskQueue: Array<() => Promise<void>> = [];
     private processing = false;
+    private priority: number;
 
     private constructor() {
         this.metrics = {
@@ -43,6 +57,7 @@ export class PerformanceManager {
             workerCount: navigator.hardwareConcurrency || 4
         };
 
+        this.priority = 1; // Default priority level
         this.initializeWorkers();
     }
 
@@ -106,10 +121,14 @@ export class PerformanceManager {
 
     private async scheduleTask(
         tasks: Array<() => Promise<void>>,
-        priority: number = 1
+        priority?: number
     ): Promise<void> {
         // Add tasks to queue with priority
-        this.taskQueue.push(...tasks);
+        const prioritizedTasks = tasks.map(task => ({
+            task,
+            priority: priority ?? this.priority
+        }));
+        this.taskQueue.push(...prioritizedTasks.map(pt => pt.task));
         this.metrics.queueLength = this.taskQueue.length;
 
         if (!this.processing) {
@@ -147,7 +166,10 @@ export class PerformanceManager {
     }
 
     private getCurrentMemoryUsage(): number {
-        return performance?.memory?.usedJSHeapSize || 0;
+        if (performance && 'memory' in performance) {
+            return performance.memory?.usedJSHeapSize || 0;
+        }
+        return 0;
     }
 
     private async performGarbageCollection(): Promise<void> {
@@ -181,15 +203,36 @@ export class PerformanceManager {
     }
 
     // Debounced version of processBatch for frequent calls
-    public debouncedProcessBatch = debounce(
-        this.processBatch.bind(this),
-        1000,
-        true
-    );
+    public debouncedProcessBatch = <T>(
+        items: T[],
+        processor: (item: T) => Promise<void>,
+        options?: { priority?: number; chunkSize?: number }
+    ): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            const debouncedFn = debounce(
+                async (items: T[], processor: (item: T) => Promise<void>, options?: { priority?: number; chunkSize?: number }) => {
+                    try {
+                        await this.processBatch(items, processor, options);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                },
+                1000,
+                true
+            );
+            debouncedFn(items, processor, options);
+        });
+    };
 
     // Throttled version for real-time processing
-    public throttledProcessBatch = throttle(
-        this.processBatch.bind(this),
+    public throttledProcessBatch: <T>(
+        items: T[],
+        processor: (item: T) => Promise<void>,
+        options?: { priority?: number; chunkSize?: number }
+    ) => Promise<void> = throttle(
+        (items: unknown[], processor: (item: unknown) => Promise<void>, options?: { priority?: number; chunkSize?: number }) =>
+            this.processBatch(items, processor, options),
         100
     );
 }

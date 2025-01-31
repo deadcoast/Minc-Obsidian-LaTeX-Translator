@@ -76,13 +76,11 @@ async function processData(id: string, data: any, options: WorkerOptions = {}): 
 async function processChunk(chunk: any[]): Promise<void> {
     // Process each item in the chunk
     await Promise.all(chunk.map(async (item) => {
-        // Add your processing logic here
-        // For example, parsing LaTeX or converting markdown
         await processItem(item);
     }));
 }
 
-async function processItem(item: any): Promise<void> {
+async function processItem(_item: any): Promise<void> {
     // Implement specific item processing logic
     // This is where you'd put the actual conversion logic
     await new Promise(resolve => setTimeout(resolve, 1)); // Simulate processing
@@ -116,12 +114,12 @@ function sendProgress(id: string, progress: number): void {
 }
 
 // Error handling
-self.onerror = (error: ErrorEvent) => {
-    console.error('Worker error:', error);
+self.onerror = (event: Event | string) => {
+    console.error('Worker error:', event);
     self.postMessage({
         type: 'error',
         id: 'global',
-        error: error.message
+        error: event instanceof ErrorEvent ? event.message : String(event)
     });
 };
 

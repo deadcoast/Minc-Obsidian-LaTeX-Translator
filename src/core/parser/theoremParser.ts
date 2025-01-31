@@ -1,8 +1,8 @@
-import { TheoremEnvironment, THEOREM_MAPPINGS } from '../config/environments';
+import { TheoremEnvironmentConfig, THEOREM_MAPPINGS } from '../config/environments';
 import { logger } from '../../utils/logger';
 
 interface TheoremState {
-    environments: Map<string, TheoremEnvironment>;
+    environments: Map<string, TheoremEnvironmentConfig>;
     currentSection: number;
 }
 
@@ -33,12 +33,19 @@ export class TheoremParser {
 
         const [, name, numberlike, prefix, section] = match;
         
-        const env: TheoremEnvironment = {
+        const env: TheoremEnvironmentConfig = {
             name,
             counter: 0,
             prefix,
             parent: numberlike,
-            shared_counter: !!numberlike
+            shared_counter: !!numberlike,
+            calloutType: 'theorem',
+            icon: '🎯',
+            color: 'blue',
+            latexToObsidian: `> [!${name}]`,
+            obsidianToLatex: `\\begin{${name}}`,
+            numbered: true,
+            supportsLabel: true
         };
 
         if (section === 'section') {
@@ -66,7 +73,7 @@ export class TheoremParser {
 
         // Increment counter
         env.counter++;
-        let number = env.counter;
+        let number: number | string = env.counter;
 
         // Handle section-based numbering
         if (env.parent === 'section') {
@@ -96,7 +103,7 @@ export class TheoremParser {
         let processedText = text;
         for (const envName of envNames) {
             const pattern = new RegExp(`\\\\begin{${envName}}([\\s\\S]*?)\\\\end{${envName}}`, 'g');
-            processedText = processedText.replace(pattern, (match, content) => {
+            processedText = processedText.replace(pattern, (_match, content) => {
                 return this.processTheorem(envName, content.trim());
             });
         }

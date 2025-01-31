@@ -1,12 +1,13 @@
-import { App, MarkdownView, MarkdownRenderer } from 'obsidian';
-import { OBSIDIAN_THEOREM_CALLOUTS, OBSIDIAN_MATH_DELIMITERS, ObsidianMathConfig, DEFAULT_OBSIDIAN_CONFIG } from '../parser/constants';
+import { App, MarkdownView, MarkdownRenderer, Component } from 'obsidian';
+import { OBSIDIAN_THEOREM_CALLOUTS, MATH_DELIMITERS, ObsidianMathConfig, DEFAULT_OBSIDIAN_CONFIG } from '../parser/constants';
 import { logger } from '../../utils/logger';
 
-export class ObsidianRenderer {
+export class ObsidianRenderer extends Component {
     private app: App;
     private config: ObsidianMathConfig;
 
     constructor(app: App, config: Partial<ObsidianMathConfig> = {}) {
+        super();
         this.app = app;
         this.config = { ...DEFAULT_OBSIDIAN_CONFIG, ...config };
     }
@@ -23,16 +24,23 @@ export class ObsidianRenderer {
      * Convert LaTeX theorem environment to Obsidian callout
      */
     public theoremToCallout(type: string, title: string, content: string): string {
-        const callout = OBSIDIAN_THEOREM_CALLOUTS[type.toLowerCase()] || OBSIDIAN_THEOREM_CALLOUTS['theorem'];
-        return `> [!${callout.type}]${callout.icon} ${title}\n> ${content.replace(/\n/g, '\n> ')}`;
+        const calloutType = type.toLowerCase() as keyof typeof OBSIDIAN_THEOREM_CALLOUTS;
+        const callout = OBSIDIAN_THEOREM_CALLOUTS[calloutType] || OBSIDIAN_THEOREM_CALLOUTS['theorem'];
+        return `> [!${callout}] ${title}\n> ${content.replace(/\n/g, '\n> ')}`;
     }
 
     /**
      * Render math content in preview mode
      */
-    public async renderMathPreview(element: HTMLElement, content: string): Promise<void> {
+    public async renderMathPreview(element: HTMLElement, content: string, isInline: boolean): Promise<void> {
         try {
-            await MarkdownRenderer.renderMath(content, element, true);
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            await MarkdownRenderer.renderMarkdown(
+                isInline ? `$${content}$` : `$$${content}$$`,
+                element,
+                activeView?.file?.path || '',
+                activeView || this
+            );
         } catch (error) {
             logger.error('Error rendering math preview:', error);
             element.textContent = content;
@@ -43,10 +51,12 @@ export class ObsidianRenderer {
      * Process math content based on editor mode
      */
     public processMathContent(content: string, isDisplay: boolean = false): string {
-        const delimiters = isDisplay ? OBSIDIAN_MATH_DELIMITERS.display : OBSIDIAN_MATH_DELIMITERS.inline;
+        const delimiters = isDisplay ? MATH_DELIMITERS.DISPLAY : MATH_DELIMITERS.INLINE;
         
         if (this.getEditorMode() === 'source') {
-            return `${delimiters.start}${content}${delimiters.end}`;
+            // Use the first delimiter pair from the array for wrapping
+            const [, wrapperDelimiter] = delimiters[0];
+            return `${wrapperDelimiter}${content}${wrapperDelimiter}`;
         }
 
         // In preview mode, we'll let Obsidian's MathJax renderer handle it
@@ -74,11 +84,13 @@ export class ObsidianRenderer {
         }
 
         const previewEl = view.previewMode?.containerEl.querySelector('.markdown-preview-view');
-        if (!previewEl) return;
+        if (!previewEl) {
+          return;
+        }
 
         const mathEl = document.createElement('div');
         mathEl.className = 'math-preview';
-        await this.renderMathPreview(mathEl, content);
+        await this.renderMathPreview(mathEl, content, false);
         
         // Replace existing preview or append new one
         const existingPreview = previewEl.querySelector('.math-preview');

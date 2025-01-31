@@ -37,6 +37,7 @@ export class ConversionLogsPanel extends ItemView {
 
     async onOpen(): Promise<void> {
         this.root = createRoot(this.containerEl);
+        this.syncHistoryToLogs();
         this.renderView();
     }
 
@@ -55,7 +56,7 @@ export class ConversionLogsPanel extends ItemView {
         };
 
         this.logs.unshift(newEntry);
-        if (this.logs.length > this.settings.uiSettings.maxLogEntries) {
+        if (this.logs.length > (this.settings.uiSettings.maxLogEntries ?? 100)) {
             this.logs.pop();
         }
         this.renderView();
@@ -66,8 +67,31 @@ export class ConversionLogsPanel extends ItemView {
         this.renderView();
     }
 
+    private syncHistoryToLogs(): void {
+        const historyEntries = this.history.getEntries();
+        for (const entry of historyEntries) {
+            if (entry.errorMessage) {
+                this.addLog({
+                    type: 'error',
+                    message: `Conversion failed: ${entry.errorMessage}`,
+                    details: `Command: ${entry.commandName}, Duration: ${entry.duration}ms`,
+                    commandId: entry.commandId
+                });
+            } else if (entry.success) {
+                this.addLog({
+                    type: 'info',
+                    message: `Conversion successful: ${entry.commandName}`,
+                    details: `Duration: ${entry.duration}ms, Math: ${entry.conversionStats?.mathCount ?? 0}, Citations: ${entry.conversionStats?.citationCount ?? 0}`,
+                    commandId: entry.commandId
+                });
+            }
+        }
+    }
+
     private renderView(): void {
-        if (!this.root) return;
+        if (!this.root) {
+          return;
+        }
         this.root.render(
             <LogsView
                 logs={this.logs}
@@ -85,8 +109,18 @@ interface LogsViewProps {
 }
 
 function LogsView({ logs, settings, onClear }: LogsViewProps): React.ReactElement {
-    const [expandedLogs, setExpandedLogs] = React.useState<Set<string>>(new Set());
+    const [expandedLogs, setExpandedLogs] = React.useState<Set<string>>(
+        new Set(settings.uiSettings?.autoExpandLogEntries ? logs.map(log => log.id) : [])
+    );
     const [filter, setFilter] = React.useState<'all' | 'info' | 'warning' | 'error'>('all');
+    
+    // Apply settings-based filtering
+    const minSeverity = settings.uiSettings?.errorMinSeverity || 'info';
+    const severityLevels = {
+        'info': 0,
+        'warning': 1,
+        'error': 2
+    };
 
     const toggleExpand = (id: string) => {
         const newExpanded = new Set(expandedLogs);
@@ -98,13 +132,16 @@ function LogsView({ logs, settings, onClear }: LogsViewProps): React.ReactElemen
         setExpandedLogs(newExpanded);
     };
 
-    const filteredLogs = logs.filter(log => 
-        filter === 'all' || log.type === filter
-    );
+    const filteredLogs = logs
+        .filter(log => 
+            (filter === 'all' || log.type === filter) &&
+            severityLevels[log.type] >= severityLevels[minSeverity]
+        )
+        .slice(0, settings.uiSettings?.maxLogEntries);
 
     return (
         <div className="latex-translator-logs">
-            <div className="logs-header">
+            <div className={`logs-header ${settings.uiSettings?.logColorCoding ? 'color-coded' : ''}`}>
                 <h3>Conversion Logs</h3>
                 <div className="logs-controls">
                     <select
@@ -133,7 +170,7 @@ function LogsView({ logs, settings, onClear }: LogsViewProps): React.ReactElemen
                     filteredLogs.map(log => (
                         <div
                             key={log.id}
-                            className={`log-entry ${log.type} ${expandedLogs.has(log.id) ? 'expanded' : ''}`}
+                            className={`log-entry ${log.type} ${expandedLogs.has(log.id) ? 'expanded' : ''} ${settings.uiSettings?.logColorCoding ? 'color-coded' : ''}`}
                             onClick={() => log.details && toggleExpand(log.id)}
                         >
                             <div className="log-header">

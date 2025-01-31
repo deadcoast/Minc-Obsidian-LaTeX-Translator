@@ -1,17 +1,120 @@
 import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from 'obsidian';
-import { LatexTranslatorSettings } from '../../settings/settings';
-import { LatexTranslatorPlugin } from '../../main';
+import { LatexTranslatorSettings, DEFAULT_SETTINGS } from '../../settings/settings';
+import LatexTranslatorPlugin from '../../main';
 import { logger } from '@utils/logger';
 import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../settings/settingsValidation';
 
 export class LatexTranslatorSettingsTab extends PluginSettingTab {
     plugin: LatexTranslatorPlugin;
     settings: LatexTranslatorSettings;
-
+    private availableSettings: LatexTranslatorSettings & Required<Pick<LatexTranslatorSettings, 'uiSettings'>>;
+    
     constructor(app: App, plugin: LatexTranslatorPlugin) {
         super(app, plugin);
         this.plugin = plugin;
-        this.settings = plugin.getSettings();
+        // First load default settings, then override with any existing user settings
+        this.settings = { ...DEFAULT_SETTINGS };
+        
+        // If user has custom settings, apply them
+        if (plugin.settings) {
+            this.settings = { ...this.settings, ...plugin.settings };
+        }
+
+        // These are the available settings that users can modify in the UI:
+        this.availableSettings = {
+                direction: 'latex-to-obsidian',
+                environmentConversion: {
+                    enabled: true,
+                    customMappings: {},
+                    preserveOriginalOnUnknown: true,
+                },
+                showNotifications: true,
+                useCallouts: true,
+                renderImmediately: true,
+                autoNumberEquations: false,
+                bracketReplacement: {
+                    convertDisplayMath: true,
+                    convertInlineMath: true,
+                    preserveSingleDollar: false,
+                    useDoubleBackslash: false,
+                },
+                batchOperations: {
+                    recursive: false,
+                    skipExisting: true,
+                    createBackups: true,
+                    notifyOnCompletion: true,
+                    errorThreshold: 10,
+                    autoSaveErrorReports: false,
+                    errorReportLocation: '',
+                    maxConcurrentFiles: 5,
+                    processDelay: 100,
+                    hotkeys: {
+                        openBatchModal: '',
+                        quickBatchCurrentFolder: '',
+                        quickBatchVault: '',
+                    }
+                },
+                labelAndReference: {
+                    removeLabels: false,
+                    preserveLabels: true,
+                    referenceHandling: 'autoNumber',
+                    customReferenceFormats: {},
+                    autoNumbering: {
+                        startEquation: 1,
+                        startFigure: 1,
+                        startTable: 1,
+                        startSection: 1,
+                    },
+                },
+                citation: {
+                    citationEnabled: true,
+                    defaultFormat: '[@$key]',
+                    customFormats: {},
+                },
+                advanced: {
+                    expandMacros: true,
+                    removeLeftRight: false,
+                    unifyTextToMathrm: true,
+                    debugLogging: false,
+                },
+                uiSettings: {
+                    enablePreviewPanel: true,
+                    previewPanelPosition: 'right',
+                    autoUpdatePreview: true,
+                    previewDelay: 500,
+                    previewTheme: 'auto',
+                    previewFontSize: 14,
+                    previewLineNumbers: true,
+                    previewSyncScroll: true,
+                    previewShowDiff: true,
+                    showErrorNotifications: true,
+                    showWarningNotifications: true,
+                    inlineErrorHighlighting: true,
+                    errorHighlightStyle: 'squiggly',
+                    errorHighlightColor: 'red',
+                    errorNotificationDuration: 5000,
+                    errorGrouping: 'type',
+                    errorMinSeverity: 'warning',
+                    showConversionLogs: true,
+                    logDetailLevel: 'detailed',
+                    maxLogEntries: 1000,
+                    autoExpandLogEntries: false,
+                    logRetentionDays: 7,
+                    logExportFormat: 'json',
+                    logSearchEnabled: true,
+                }
+            };
+            
+        // The availableSettings object above shows all settings that can be modified through the UI
+
+    }
+
+    private addDefaultSettingsReference(containerEl: HTMLElement): void {
+        containerEl.createEl('h2', { text: 'Default Settings Reference' });
+        const defaultSettingsContainer = containerEl.createEl('details');
+        defaultSettingsContainer.createEl('summary', { text: 'Click to view all available settings and their default values' });
+        const pre = defaultSettingsContainer.createEl('pre', { cls: 'settings-reference' });
+        pre.createEl('code', { text: JSON.stringify(this.availableSettings, null, 2) });
     }
 
     display(): void {
@@ -27,6 +130,7 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
         this.addAdvancedSettings(containerEl);
         this.addBatchOperationSettings(containerEl);
         this.addImportExportSettings(containerEl);
+        this.addDefaultSettingsReference(containerEl);
 
         // UI Settings
         containerEl.createEl('h2', { text: 'UI Settings' });
@@ -36,9 +140,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Enable Preview Panel')
             .setDesc('Show a real-time preview panel when converting LaTeX')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.enablePreviewPanel)
+                .setValue(this.settings.uiSettings.enablePreviewPanel)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.enablePreviewPanel = value;
+                    this.settings.uiSettings.enablePreviewPanel = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -48,9 +152,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .addDropdown(dropdown => dropdown
                 .addOption('right', 'Right')
                 .addOption('bottom', 'Bottom')
-                .setValue(this.plugin.settings.uiSettings.previewPanelPosition ?? 'right')
+                .setValue(this.settings.uiSettings.previewPanelPosition ?? 'right')
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.previewPanelPosition = value as 'right' | 'bottom';
+                    this.settings.uiSettings.previewPanelPosition = value as 'right' | 'bottom';
                     await this.plugin.saveSettings();
                 }));
 
@@ -58,9 +162,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Auto-Update Preview')
             .setDesc('Automatically update the preview as you type')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.autoUpdatePreview ?? false)
+                .setValue(this.settings.uiSettings.autoUpdatePreview ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.autoUpdatePreview = value;
+                    this.settings.uiSettings.autoUpdatePreview = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -69,10 +173,10 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Delay in milliseconds before updating the preview (when auto-update is enabled)')
             .addSlider(slider => slider
                 .setLimits(100, 2000, 100)
-                .setValue(this.plugin.settings.uiSettings.previewDelay ?? 500)
+                .setValue(this.settings.uiSettings.previewDelay ?? 500)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.previewDelay = value;
+                    this.settings.uiSettings.previewDelay = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -83,9 +187,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Error Notifications')
             .setDesc('Display error notifications when conversion fails')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showErrorNotifications ?? true)
+                .setValue(this.settings.uiSettings.showErrorNotifications ?? true)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showErrorNotifications = value;
+                    this.settings.uiSettings.showErrorNotifications = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -93,9 +197,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Warning Notifications')
             .setDesc('Display warning notifications for potential issues')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showWarningNotifications ?? false)
+                .setValue(this.settings.uiSettings.showWarningNotifications ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showWarningNotifications = value;
+                    this.settings.uiSettings.showWarningNotifications = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -103,9 +207,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Inline Error Highlighting')
             .setDesc('Highlight errors directly in the editor')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.inlineErrorHighlighting ?? false)
+                .setValue(this.settings.uiSettings.inlineErrorHighlighting ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.inlineErrorHighlighting = value;
+                    this.settings.uiSettings.inlineErrorHighlighting = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -116,9 +220,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('underline', 'Underline')
                 .addOption('background', 'Background')
                 .addOption('gutter', 'Gutter Icon')
-                .setValue(this.plugin.settings.uiSettings.errorHighlightStyle ?? 'underline')
+                .setValue(this.settings.uiSettings.errorHighlightStyle ?? 'underline')
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.errorHighlightStyle = value as 'underline' | 'background' | 'gutter';
+                    this.settings.uiSettings.errorHighlightStyle = value as 'underline' | 'background' | 'gutter';
                     await this.plugin.saveSettings();
                 }));
 
@@ -129,9 +233,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Conversion Logs')
             .setDesc('Display a panel with conversion logs and errors')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showConversionLogs ?? false)
+                .setValue(this.settings.uiSettings.showConversionLogs ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showConversionLogs = value;
+                    this.settings.uiSettings.showConversionLogs = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -142,9 +246,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
                 .addOption('basic', 'Basic')
                 .addOption('detailed', 'Detailed')
                 .addOption('debug', 'Debug')
-                .setValue(this.plugin.settings.uiSettings.logDetailLevel ?? 'basic')
+                .setValue(this.settings.uiSettings.logDetailLevel ?? 'basic')
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.logDetailLevel = value as 'basic' | 'detailed' | 'debug';
+                    this.settings.uiSettings.logDetailLevel = value as 'basic' | 'detailed' | 'debug';
                     await this.plugin.saveSettings();
                 }));
 
@@ -153,10 +257,10 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Maximum number of log entries to keep')
             .addSlider(slider => slider
                 .setLimits(50, 500, 50)
-                .setValue(this.plugin.settings.uiSettings.maxLogEntries ?? 50)
+                .setValue(this.settings.uiSettings.maxLogEntries ?? 50)
                 .setDynamicTooltip()
                 .onChange(async (value: number) => {
-                    this.plugin.settings.uiSettings.maxLogEntries = value;
+                    this.settings.uiSettings.maxLogEntries = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -164,9 +268,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Auto-Expand Log Entries')
             .setDesc('Automatically expand detailed log entries')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.autoExpandLogEntries ?? false)
+                .setValue(this.settings.uiSettings.autoExpandLogEntries ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.autoExpandLogEntries = value;
+                    this.settings.uiSettings.autoExpandLogEntries = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -177,9 +281,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Progress Bar')
             .setDesc('Display a progress bar for batch operations')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showProgressBar ?? true)
+                .setValue(this.settings.uiSettings.showProgressBar ?? true)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showProgressBar = value;
+                    this.settings.uiSettings.showProgressBar = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -187,9 +291,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Status Bar Info')
             .setDesc('Display conversion information in the status bar')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showStatusBarInfo ?? true)
+                .setValue(this.settings.uiSettings.showStatusBarInfo ?? true)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showStatusBarInfo = value;
+                    this.settings.uiSettings.showStatusBarInfo = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -197,9 +301,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Show Command Count')
             .setDesc('Display command count in the status bar')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.uiSettings.showCommandCount ?? false)
+                .setValue(this.settings.uiSettings.showCommandCount ?? false)
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.showCommandCount = value;
+                    this.settings.uiSettings.showCommandCount = value;
                     await this.plugin.saveSettings();
                 }));
 
@@ -208,10 +312,10 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setDesc('Minimum number of operations to show progress bar')
             .addSlider(slider => slider
                 .setLimits(5, 50, 5)
-                .setValue(this.plugin.settings.uiSettings.minimumBatchSize ?? 5)
+                .setValue(this.settings.uiSettings.minimumBatchSize ?? 5)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.uiSettings.minimumBatchSize = value ?? 5;
+                    this.settings.uiSettings.minimumBatchSize = value ?? 5;
                     await this.plugin.saveSettings();
                 }));
     }
@@ -381,9 +485,9 @@ export class LatexTranslatorSettingsTab extends PluginSettingTab {
             .setName('Enable Citation Conversion')
             .setDesc('Convert LaTeX citations to Obsidian format')
             .addToggle(toggle => toggle
-                .setValue(this.settings.citation.enabled)
+                .setValue(this.settings.citation.citationEnabled)
                 .onChange(async (value) => {
-                    this.settings.citation.enabled = value;
+                    this.settings.citation.citationEnabled = value;
                     await this.plugin.saveSettings();
                 }));
 
