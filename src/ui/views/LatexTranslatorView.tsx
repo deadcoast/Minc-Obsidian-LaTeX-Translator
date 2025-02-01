@@ -34,10 +34,7 @@ const ViewContent: React.FC<ViewContentProps> = ({ plugin: _plugin }) => {
 
   return (
     <ViewContainer>
-      <TransformationControls 
-        options={parserOptions}
-        onOptionsChange={setParserOptions}
-      />
+      <TransformationControls options={parserOptions} onOptionsChange={setParserOptions} />
       <PreviewPanel />
     </ViewContainer>
   );

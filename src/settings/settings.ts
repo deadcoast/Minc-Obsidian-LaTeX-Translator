@@ -1,7 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import { default as LatexTranslatorPlugin } from '../../main';
+import LatexTranslatorPlugin from '../../main';
 import { ParserOptions } from '../core/parser/latexParser';
-import { UISettings } from '../types/UISettings';
 
 // LatexTranslatorSettings.ts
 
@@ -338,6 +337,13 @@ export interface LatexTranslatorSettings {
   batchOperations: BatchOperationSettings;
 }
 
+export interface UISettings {
+  errorGrouping: string;
+  errorNotificationDuration: number;
+  previewDelay: number;
+  theme: 'light' | 'dark' | 'system';
+}
+
 export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   direction: 'latex-to-obsidian',
   
@@ -351,6 +357,10 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   useCallouts: true,
   renderImmediately: true,
   autoNumberEquations: true,
+  ui: {
+    theme: 'default',
+    customStyles: {}
+  },
 
   bracketReplacement: {
     convertDisplayMath: true,

@@ -1,4 +1,6 @@
 import { ParserOptions } from '../parser/latexParser';
+import { LatexTranslatorSettings } from '../settings/LatexTranslatorSettings';
+import { App } from '../app/App';
 
 export interface CommandHistoryEntry {
     timestamp: number;
@@ -45,6 +47,13 @@ export interface CommandStatistics {
 }
 
 export class CommandHistory {
+    constructor(
+        private settings: LatexTranslatorSettings,
+        private app: App
+    ) {
+        // Initialize history tracking
+    }
+
     private static readonly MAX_HISTORY = 50;
     private history: CommandHistoryEntry[] = [];
     private startTime: number = Date.now();

@@ -3,16 +3,15 @@ import {
     Editor,
     MarkdownView,
     Plugin,
-    Setting,
-    ItemView,
-    WorkspaceLeaf, 
-    Notice,
+    PluginManifest,
     View,
     addIcon,
     TAbstractFile,
     TFile,
     TFolder,
-    Modal
+    Modal,
+    Notice,
+    WorkspaceLeaf
 } from 'obsidian';
 import { LatexTranslatorSettingsTab } from '@ui/ui_settings/LatexTranslatorSettingsTab';
 import LatexParser from '@core/parser/latexParser';
@@ -25,7 +24,6 @@ import { LatexTranslator } from './src/core/translator/LatexTranslator';
 import { CommandHistory } from '@core/history/commandHistory';
 import { ErrorHandler } from '@core/error/ErrorHandler';
 import { BatchOperationSettings } from './src/types/BatchOperationSettings'; // Import the BatchOperationSettings interface
-
 
 // Default Settings
 const DEFAULT_SETTINGS: LatexTranslatorSettings = {
@@ -111,12 +109,8 @@ const DEFAULT_SETTINGS: LatexTranslatorSettings = {
         previewShowDiff: true,
         showWarningNotifications: true,
         inlineErrorHighlighting: true,
-        errorHighlightStyle: 'squiggly',
-        errorHighlightColor: 'red',
-        errorNotificationDuration: 5000,
         errorGrouping: 'type',
         errorMinSeverity: 'warning',
-        showConversionLogs: true,
         logDetailLevel: 'detailed',
         maxLogEntries: 1000,
         autoExpandLogEntries: false,
@@ -189,25 +183,35 @@ const isObject = (item: any): item is Record<string, any> =>
 export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlugin {
     private translator!: LatexTranslator;
     private commandHistory: CommandHistory;
+    public get history(): CommandHistory {
+        return this.commandHistory;
+    }
     private errorHandler!: ErrorHandler;
     public parser: LatexParser;
     public settings: LatexTranslatorSettings;
     public activeView: View | null = null;
     public isProcessing = false;
 
-    constructor() {
-        super();
-        this.settings = { ...DEFAULT_SETTINGS };
-        this.parser = new LatexParser();
-        this.commandHistory = new CommandHistory();
+    constructor(app: App, manifest: PluginManifest) { 
+        super(app, manifest); this.settings = { ...DEFAULT_SETTINGS }; 
+        this.parser = new LatexParser(); 
+        this.commandHistory = new CommandHistory(this.settings,
+        this.app); 
+        this.errorHandler = ErrorHandler.getInstance(this.app); 
+        this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
+
+    
     }
+
+    
+
 
     /**
      * Activate or reveal a view of the specified type
      * @param viewType The type of view to activate
-     * @param createIfNotExists Whether to create the view if it doesn't exist (default: true)
+     * @param _createIfNotExists Whether to create the view if it doesn't exist (default: true)
      */
-    async activateView(viewType: string = LATEX_VIEW_TYPE, createIfNotExists: boolean = true): Promise<void> {
+    async activateView(viewType: string = LATEX_VIEW_TYPE, _createIfNotExists: boolean = true): Promise<void> {
         const leaves = this.app.workspace.getLeavesOfType(viewType);
         
         if (leaves.length > 0) {
@@ -242,8 +246,8 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         
         // Initialize core components
         this.parser = new LatexParser();
-        this.commandHistory = new CommandHistory();
-        this.errorHandler = new ErrorHandler();
+        this.commandHistory = new CommandHistory(this.settings, this.app);
+        this.errorHandler = ErrorHandler.getInstance(this.app);
         this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
         
         await this.loadSettings();
@@ -452,6 +456,22 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         );
 
         logger.info('Latex Translator plugin loaded successfully');
+
+        this.addCommand({
+            id: 'convert-latex-to-obsidian',
+            name: 'Convert LaTeX to Obsidian',
+            editorCallback: (editor, view) => {
+                this.handleLatexToObsidian(editor);
+            }
+        });
+
+        this.addCommand({
+            id: 'convert-obsidian-to-latex',
+            name: 'Convert Obsidian to LaTeX',
+            editorCallback: (editor, view) => {
+                this.handleObsidianToLatex(editor);
+            }
+        });
     }
 
     /**
@@ -628,7 +648,8 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
             const { translatedContent, error } = await this.translator.translateContent(
                 text,
                 undefined,
-                { direction: 'obsidian-to-latex' }
+                { 
+                }
             );
 
             if (error) {
@@ -738,3 +759,5 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         }
     }
 }
+
+export default LatexTranslatorPlugin;

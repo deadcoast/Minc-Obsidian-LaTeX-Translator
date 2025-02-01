@@ -28,6 +28,7 @@
     ],
     "jsx": "react-jsx",
     "paths": {
+      "@/*": ["./*"],
       "@core/*": ["./src/core/*"],
       "@ui/*": ["./src/ui/*"],
       "@components/*": ["./src/ui/components/*"],

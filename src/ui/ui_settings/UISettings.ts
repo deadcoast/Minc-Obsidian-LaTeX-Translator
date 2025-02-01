@@ -38,4 +38,8 @@ export interface UISettings {
     previewSyncScroll: boolean;
     // Show diff in preview
     previewShowDiff: boolean;
+    // Whether to highlight inline errors in the editor
+    inlineErrorHighlighting: boolean;
+    // CSS class for error highlighting
+    errorHighlightStyle: string;
 }

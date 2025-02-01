@@ -35,7 +35,9 @@ export class StatisticsView extends ItemView {
     }
 
     private renderView(): void {
-        if (!this.root) return;
+        if (!this.root) {
+          return;
+        }
         this.root.render(
             <StatisticsPanel history={this.history} />
         );

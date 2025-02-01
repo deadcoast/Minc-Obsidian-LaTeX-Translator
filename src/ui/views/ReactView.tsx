@@ -4,9 +4,9 @@
 import * as React from 'react'; // Named import to comply without 'allowSyntheticDefaultImports'
 import { useCallback, useState, createContext, useContext, useMemo } from 'react';
 import { Notice, TFolder, TFile, Modal, App } from 'obsidian';
-import { parseLatexToObsidian } from '@core/parser'; // Ensure correct path
+import LatexParser from '@core/parser'; // Ensure correct path
 import { FileConversionProgress } from '@views/index'; // Using named import
-import LatexTranslatorPlugin from '../../main'; // Import plugin type
+import { LatexTranslatorPlugin } from '../../../main'; // Using correct relative path
 import { settingsToParserOptions } from '../../settings/settings';
 
 /**
@@ -100,6 +100,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [parser] = useState(() => new LatexParser());
 
   // Use plugin settings for parsing
   const parserOptions = useMemo(() => settingsToParserOptions(plugin.settings), [plugin.settings]);
@@ -108,7 +109,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
     async (file: TFile): Promise<boolean> => {
       try {
         const content = await useApp().vault.read(file);
-        const converted = parseLatexToObsidian(content, parserOptions);
+        const converted = parser.parseLatexToObsidian(content, parserOptions);
         await useApp().vault.modify(file, converted);
         
         // Add to command history
@@ -220,7 +221,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
       setInput(newInput);
 
       try {
-        const converted = parseLatexToObsidian(newInput, parserOptions);
+        const converted = parser.parseLatexToObsidian(newInput, parserOptions);
         setOutput(converted);
         setError(null);
       } catch (err) {
@@ -228,7 +229,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
         new Notice('Error converting LaTeX: ' + (err instanceof Error ? err.message : 'Unknown error'));
       }
     },
-    [parserOptions]
+    [parser, parserOptions]
   );
 
   const handleCopy = useCallback(() => {
