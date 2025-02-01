@@ -11,11 +11,7 @@ export const AppProvider: React.FC<{ app: App; children: React.ReactNode }> = ({
   app,
   children,
 }) => {
-  return (
-    <AppContext.Provider value={{ app }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={{ app }}>{children}</AppContext.Provider>;
 };
 
 export const useApp = (): App => {

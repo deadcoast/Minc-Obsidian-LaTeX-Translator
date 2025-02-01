@@ -21,11 +21,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "lib": [
-      "DOM",
-      "ES2020",
-      "DOM.Iterable"
-    ],
+    "lib": ["DOM", "ES2020", "DOM.Iterable"],
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./*"],
@@ -41,16 +37,8 @@
     "typeRoots": ["./node_modules/@types"],
     "rootDir": ".",
     "outDir": "./dist",
-    "plugins": [
-      { "name": "typescript-plugin-css-modules" }
-    ]
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

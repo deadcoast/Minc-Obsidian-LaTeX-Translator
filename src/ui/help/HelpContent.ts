@@ -1,5 +1,5 @@
 export const HelpContent = {
-    overview: `# LaTeX Translator Plugin
+  overview: `# LaTeX Translator Plugin
 
 A powerful Obsidian plugin for seamless LaTeX to Markdown conversion and vice versa.
 
@@ -20,7 +20,7 @@ A powerful Obsidian plugin for seamless LaTeX to Markdown conversion and vice ve
 - [Troubleshooting](#troubleshooting)
 - [Examples](#examples)`,
 
-    'getting-started': `# Getting Started
+  'getting-started': `# Getting Started
 
 ## Installation
 
@@ -51,7 +51,7 @@ A powerful Obsidian plugin for seamless LaTeX to Markdown conversion and vice ve
 - Review the examples section
 - Keep the documentation handy`,
 
-    features: `# Features
+  features: `# Features
 
 ## Translation
 
@@ -93,7 +93,7 @@ A powerful Obsidian plugin for seamless LaTeX to Markdown conversion and vice ve
 - Document statistics
 - Export options`,
 
-    settings: `# Settings Configuration
+  settings: `# Settings Configuration
 
 ## General Settings
 
@@ -134,7 +134,7 @@ Customize shortcuts for:
 - Settings access
 - Help display`,
 
-    commands: `# Available Commands
+  commands: `# Available Commands
 
 ## Basic Commands
 
@@ -152,7 +152,7 @@ Customize shortcuts for:
 - \`Clear History\`: Reset command history
 - \`Check Syntax\`: Validate document syntax`,
 
-    examples: `# Usage Examples
+  examples: `# Usage Examples
 
 ## Basic Conversion
 
@@ -210,7 +210,7 @@ This is a theorem
 
 See the [examples folder](examples/) for complete document examples.`,
 
-    troubleshooting: `# Troubleshooting Guide
+  troubleshooting: `# Troubleshooting Guide
 
 ## Common Issues
 
@@ -254,7 +254,7 @@ See the [examples folder](examples/) for complete document examples.`,
 4. Validate results
 5. Update settings if needed`,
 
-    'batch-operations': `# Batch Operations Guide
+  'batch-operations': `# Batch Operations Guide
 
 ## Overview
 
@@ -284,7 +284,7 @@ Batch operations allow processing multiple files simultaneously.
 - Review logs
 - Test with samples`,
 
-    'keyboard-shortcuts': `# Keyboard Shortcuts
+  'keyboard-shortcuts': `# Keyboard Shortcuts
 
 ## Default Shortcuts
 
@@ -307,11 +307,11 @@ Batch operations allow processing multiple files simultaneously.
 - Avoid conflicts
 - Remember common actions
 - Create mnemonics
-- Practice regularly`
+- Practice regularly`,
 };
 
 export interface HelpSection {
-    id: string;
-    title: string;
-    icon: string;
+  id: string;
+  title: string;
+  icon: string;
 }

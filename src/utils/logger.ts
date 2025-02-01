@@ -3,10 +3,10 @@ import { Notice } from 'obsidian';
 export type LogLevel = 'info' | 'warning' | 'error';
 
 interface LogEntry {
-    level: LogLevel;
-    message: string;
-    timestamp: Date;
-    details?: unknown;
+  level: LogLevel;
+  message: string;
+  timestamp: Date;
+  details?: unknown;
 }
 
 class Logger {
@@ -18,12 +18,12 @@ class Logger {
     this.showNotifications = showNotifications;
   }
 
-  log(level: LogLevel, message: string, details?: unknown) {
+  log(level: LogLevel, message: string, details?: unknown): void {
     const entry: LogEntry = {
       level,
       message,
       timestamp: new Date(),
-      details
+      details,
     };
 
     this.logs.unshift(entry);
@@ -34,20 +34,17 @@ class Logger {
     if (this.showNotifications) {
       new Notice(message);
     }
-
-    // Also log to console for debugging
-    console.log(`[LaTeX Translator] ${level.toUpperCase()}: ${message}`, details || '');
   }
 
-  info(message: string, details?: unknown) {
+  info(message: string, details?: unknown): void {
     this.log('info', message, details);
   }
 
-  warning(message: string, details?: unknown) {
+  warning(message: string, details?: unknown): void {
     this.log('warning', message, details);
   }
 
-  error(message: string, details?: unknown) {
+  error(message: string, details?: unknown): void {
     this.log('error', message, details);
   }
 
@@ -55,11 +52,11 @@ class Logger {
     return [...this.logs];
   }
 
-  clearLogs() {
+  clearLogs(): void {
     this.logs = [];
   }
 
-  setNotifications(show: boolean) {
+  setNotifications(show: boolean): void {
     this.showNotifications = show;
   }
 }

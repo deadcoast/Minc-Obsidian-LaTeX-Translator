@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { ItemView, WorkspaceLeaf, App } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
@@ -14,7 +15,7 @@ export class LatexView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf, plugin: LatexTranslatorPlugin) {
     super(leaf);
-    this.app = (this.leaf as any).app;
+    this.app = this.leaf.app;
     this.plugin = plugin;
   }
 

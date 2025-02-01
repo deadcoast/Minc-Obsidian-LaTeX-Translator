@@ -9,22 +9,22 @@ interface TransformationControlsProps {
 
 export const TransformationControls: React.FC<TransformationControlsProps> = ({
   options,
-  onOptionsChange
+  onOptionsChange,
 }) => {
   return (
-    <div className="transformation-controls">
+    <div className='transformation-controls'>
       <h3>Transformation Options</h3>
-      <div className="controls-grid">
+      <div className='controls-grid'>
         {Object.entries(options).map(([key, value]) => (
-          <div key={key} className="control-item">
+          <div key={key} className='control-item'>
             <label>
               <input
-                type="checkbox"
+                type='checkbox'
                 checked={value as boolean}
-                onChange={(e) => 
+                onChange={(e): void =>
                   onOptionsChange({
                     ...options,
-                    [key]: e.target.checked
+                    [key]: e.target.checked,
                   })
                 }
               />

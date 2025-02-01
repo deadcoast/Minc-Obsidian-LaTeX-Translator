@@ -3,7 +3,10 @@ import styled from 'styled-components';
 import { EditorView, ViewUpdate, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap } from '@codemirror/commands';
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import {
+  syntaxHighlighting,
+  defaultHighlightStyle,
+} from '@codemirror/language';
 import { markdown } from '@codemirror/lang-markdown';
 import { Notice } from 'obsidian';
 import LatexParser from '@core/parser/latexParser';
@@ -34,7 +37,7 @@ const EditorPane = styled.div`
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
   overflow: hidden;
-  
+
   .cm-editor {
     height: 100%;
     .cm-scroller {
@@ -58,7 +61,7 @@ const Button = styled.button`
   border-radius: 4px;
   padding: 0.5rem 1rem;
   cursor: pointer;
-  
+
   &:hover {
     background: var(--interactive-accent-hover);
   }
@@ -66,20 +69,20 @@ const Button = styled.button`
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   initialContent = '',
-  onContentChange
+  onContentChange,
 }) => {
   const [latexOutput, setLatexOutput] = useState('');
-  
+
   // Refs for the DOM elements
   const sourceEditorDomRef = useRef<HTMLDivElement>(null);
   const outputEditorDomRef = useRef<HTMLDivElement>(null);
-  
+
   // Refs for the EditorView instances
   const sourceEditorRef = useRef<EditorView | null>(null);
   const outputEditorRef = useRef<EditorView | null>(null);
-  
+
   const latexParser = useRef<LatexParser>(new LatexParser());
-  
+
   useEffect(() => {
     // Source editor setup
     const sourceEditorState = EditorState.create({
@@ -95,24 +98,25 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
               const latex = latexParser.current.parseLatexToObsidian(content);
               setLatexOutput(latex);
               onContentChange?.(content);
-              
+
               // Update output editor
               if (outputEditorRef.current) {
                 outputEditorRef.current.dispatch({
                   changes: {
                     from: 0,
                     to: outputEditorRef.current.state.doc.length,
-                    insert: latex
-                  }
+                    insert: latex,
+                  },
                 });
               }
             } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
               new Notice('Error parsing LaTeX: ' + errorMessage);
             }
           }
-        })
-      ]
+        }),
+      ],
     });
 
     // Output editor setup
@@ -122,42 +126,46 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
         keymap.of(defaultKeymap),
         syntaxHighlighting(defaultHighlightStyle),
         markdown(),
-        EditorView.editable.of(false)
-      ]
+        EditorView.editable.of(false),
+      ],
     });
 
     if (sourceEditorDomRef.current && outputEditorDomRef.current) {
       sourceEditorRef.current = new EditorView({
         state: sourceEditorState,
-        parent: sourceEditorDomRef.current
+        parent: sourceEditorDomRef.current,
       });
 
       outputEditorRef.current = new EditorView({
         state: outputEditorState,
-        parent: outputEditorDomRef.current
+        parent: outputEditorDomRef.current,
       });
     }
 
-    return () => {
+    return (): void => {
       sourceEditorRef.current?.destroy();
       outputEditorRef.current?.destroy();
     };
-  }, []);
+  }, [initialContent, latexOutput, onContentChange]);
 
   return (
     <Container>
       <Toolbar>
-        <Button onClick={() => {
-          try {
-            const content = sourceEditorRef.current?.state.doc.toString() || '';
-            const latex = latexParser.current.parseLatexToObsidian(content);
-            setLatexOutput(latex);
-            new Notice('LaTeX converted successfully!');
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            new Notice('Error parsing LaTeX: ' + errorMessage);
-          }
-        }}>
+        <Button
+          onClick={(): void => {
+            try {
+              const content =
+                sourceEditorRef.current?.state.doc.toString() || '';
+              const latex = latexParser.current.parseLatexToObsidian(content);
+              setLatexOutput(latex);
+              new Notice('LaTeX converted successfully!');
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              new Notice('Error parsing LaTeX: ' + errorMessage);
+            }
+          }}
+        >
           Convert LaTeX
         </Button>
       </Toolbar>

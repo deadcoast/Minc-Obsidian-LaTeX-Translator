@@ -9,7 +9,7 @@ export const useTheme = (): Theme => {
   const { app } = useApp();
 
   useEffect(() => {
-    const updateTheme = () => {
+    const updateTheme = (): void => {
       const isDark = document.body.classList.contains('theme-dark');
       setTheme(isDark ? 'dark' : 'light');
     };

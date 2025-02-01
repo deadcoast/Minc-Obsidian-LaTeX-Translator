@@ -25,8 +25,15 @@ export interface UISettings {
   errorNotificationDuration: number;
   errorGrouping: 'none' | 'type' | 'location';
   inlineErrorHighlighting: boolean;
-  errorHighlightStyle: 'underline' | 'background' | 'gutter' | 'squiggly' | 'border' | 'side-border';
+  errorHighlightStyle:
+    | 'underline'
+    | 'background'
+    | 'gutter'
+    | 'squiggly'
+    | 'border'
+    | 'side-border';
   errorHighlightColor: 'red' | 'orange' | 'yellow';
+  errorMinSeverity: 'info' | 'warning' | 'error';
 
   // Theme and Styling
   theme: 'light' | 'dark' | 'system';
@@ -77,12 +84,13 @@ export const DEFAULT_UI_SETTINGS: UISettings = {
   inlineErrorHighlighting: true,
   errorHighlightStyle: 'underline',
   errorHighlightColor: 'red',
+  errorMinSeverity: 'info',
 
   // Theme and Styling
   theme: 'system',
   customStyles: {
     enabled: false,
-    css: ''
+    css: '',
   },
   fontSize: 14,
   lineHeight: 1.5,
@@ -98,5 +106,5 @@ export const DEFAULT_UI_SETTINGS: UISettings = {
   progressBarStyle: 'minimal',
   progressBarPosition: 'status',
   progressBarTheme: 'default',
-  showEstimatedTime: true
+  showEstimatedTime: true,
 };

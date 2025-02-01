@@ -10,7 +10,10 @@ export const useApp = (): AppHook => {
 
   useEffect(() => {
     // Get the Obsidian app instance
-    const appInstance = (window as any).app;
+    interface ObsidianWindow extends Window {
+      app: App;
+    }
+    const appInstance = (window as ObsidianWindow).app;
     if (appInstance) {
       setApp(appInstance);
     }

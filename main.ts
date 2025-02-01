@@ -1,17 +1,16 @@
-import { 
-    App,
-    Editor,
-    MarkdownView,
-    Plugin,
-    PluginManifest,
-    View,
-    addIcon,
-    TAbstractFile,
-    TFile,
-    TFolder,
-    Modal,
-    Notice,
-    WorkspaceLeaf
+import {
+  App,
+  Editor,
+  MarkdownView,
+  Plugin,
+  PluginManifest,
+  addIcon,
+  TAbstractFile,
+  TFile,
+  TFolder,
+  Modal,
+  Notice,
+  WorkspaceLeaf,
 } from 'obsidian';
 import { LatexTranslatorSettingsTab } from '@ui/ui_settings/LatexTranslatorSettingsTab';
 import LatexParser from '@core/parser/latexParser';
@@ -28,80 +27,80 @@ import { BatchOperationsModal } from './src/ui/components/BatchOperationsModal';
 
 // Default Settings
 const DEFAULT_SETTINGS: LatexTranslatorSettings = {
-    direction: 'latex-to-obsidian',
-    renderImmediately: true,
-    useCallouts: true,
-    showNotifications: true,
-    autoNumberEquations: true,
-    
-    environmentConversion: {
-        enabled: true,
-        customMappings: {},
-        preserveOriginalOnUnknown: true
-    },
-    
-    labelAndReference: {
-        preserveLabels: true,
-        removeLabels: false,
-        referenceHandling: 'autoNumber',
-        customReferenceFormats: {},
-        autoNumbering: {
-            startEquation: 1,
-            startFigure: 1,
-            startTable: 1,
-            startSection: 1
-        }
-    },
-    
-    bracketReplacement: {
-        convertDisplayMath: true,
-        convertInlineMath: true,
-        preserveSingleDollar: true,
-        useDoubleBackslash: false
-    },
-    
-    citation: {
-        citationEnabled: true,
-        defaultFormat: '[%citationKey%]',
-        customFormats: {}
-    },
-    
-    advanced: {
-        expandMacros: true,
-        removeLeftRight: false,
-        unifyTextToMathrm: true,
-        debugLogging: false
-    },
+  direction: 'latex-to-obsidian',
+  renderImmediately: true,
+  useCallouts: true,
+  showNotifications: true,
+  autoNumberEquations: true,
 
-    batch: {
-        recursive: true,
-        skipExisting: true,
-        createBackups: true,
-        notifyOnCompletion: true,
-        errorThreshold: 5,
-        autoSaveErrorReports: true,
-        errorReportLocation: 'errors',
-        maxConcurrentFiles: 5,
-        processDelay: 100,
-        hotkeys: {
-            openBatchModal: 'Ctrl/Cmd + Shift + B',
-            quickBatchCurrentFolder: 'Ctrl/Cmd + Shift + F',
-            quickBatchVault: 'Ctrl/Cmd + Shift + V'
-        }
-    } as BatchOperationSettings, // Update the batch settings type to match the BatchOperationSettings interface
+  environmentConversion: {
+    enabled: true,
+    customMappings: {},
+    preserveOriginalOnUnknown: true,
+  },
 
-    ui: {
-        previewDelay: 1000,
-        showErrorNotifications: true,
-        showSuccessNotifications: true,
-        theme: 'system',
-        fontSize: 14,
-        lineHeight: 1.5,
-        editorWidth: 'medium',
-        sidebarLocation: 'right',
-        customStyles: {
-            enabled: true,
-            css: `
+  labelAndReference: {
+    preserveLabels: true,
+    removeLabels: false,
+    referenceHandling: 'autoNumber',
+    customReferenceFormats: {},
+    autoNumbering: {
+      startEquation: 1,
+      startFigure: 1,
+      startTable: 1,
+      startSection: 1,
+    },
+  },
+
+  bracketReplacement: {
+    convertDisplayMath: true,
+    convertInlineMath: true,
+    preserveSingleDollar: true,
+    useDoubleBackslash: false,
+  },
+
+  citation: {
+    citationEnabled: true,
+    defaultFormat: '[%citationKey%]',
+    customFormats: {},
+  },
+
+  advanced: {
+    expandMacros: true,
+    removeLeftRight: false,
+    unifyTextToMathrm: true,
+    debugLogging: false,
+  },
+
+  batch: {
+    recursive: true,
+    skipExisting: true,
+    createBackups: true,
+    notifyOnCompletion: true,
+    errorThreshold: 5,
+    autoSaveErrorReports: true,
+    errorReportLocation: 'errors',
+    maxConcurrentFiles: 5,
+    processDelay: 100,
+    hotkeys: {
+      openBatchModal: 'Ctrl/Cmd + Shift + B',
+      quickBatchCurrentFolder: 'Ctrl/Cmd + Shift + F',
+      quickBatchVault: 'Ctrl/Cmd + Shift + V',
+    },
+  } as BatchOperationSettings, // Update the batch settings type to match the BatchOperationSettings interface
+
+  ui: {
+    previewDelay: 1000,
+    showErrorNotifications: true,
+    showSuccessNotifications: true,
+    theme: 'system',
+    fontSize: 14,
+    lineHeight: 1.5,
+    editorWidth: 'medium',
+    sidebarLocation: 'right',
+    customStyles: {
+      enabled: true,
+      css: `
                 .latex-translator-view {
                     padding: 1rem;
                     gap: 1rem;
@@ -127,721 +126,760 @@ const DEFAULT_SETTINGS: LatexTranslatorSettings = {
                     background-color: var(--latex-error-light);
                     border-bottom: 2px dotted var(--latex-error);
                 }
-            `
-        },
-        enablePreviewPanel: true,
-        previewPanelPosition: 'right',
-        autoUpdatePreview: true,
-        previewTheme: 'auto',
-        previewFontSize: 14,
-        previewLineNumbers: true,
-        previewSyncScroll: true,
-        previewShowDiff: true,
-        showWarningNotifications: true,
-        inlineErrorHighlighting: true,
-        errorGrouping: 'type',
-        errorMinSeverity: 'warning',
-        logDetailLevel: 'detailed',
-        maxLogEntries: 1000,
-        autoExpandLogEntries: false,
-        logRetentionDays: 7,
-        logExportFormat: 'json',
-        logSearchEnabled: true,
-        logFilterPresets: []
+            `,
     },
+    enablePreviewPanel: true,
+    previewPanelPosition: 'right',
+    autoUpdatePreview: true,
+    previewTheme: 'auto',
+    previewFontSize: 14,
+    previewLineNumbers: true,
+    previewSyncScroll: true,
+    previewShowDiff: true,
+    showWarningNotifications: true,
+    inlineErrorHighlighting: true,
+    errorGrouping: 'type',
+    errorMinSeverity: 'warning',
+    logDetailLevel: 'detailed',
+    maxLogEntries: 1000,
+    autoExpandLogEntries: false,
+    logRetentionDays: 7,
+    logExportFormat: 'json',
+    logSearchEnabled: true,
+    logFilterPresets: [],
+  },
 
-    debug: {
-        logging: false,
-        verboseOutput: false,
-        saveDebugInfo: false,
-        debugInfoLocation: 'debug'
-    }
+  debug: {
+    logging: false,
+    verboseOutput: false,
+    saveDebugInfo: false,
+    debugInfoLocation: 'debug',
+  },
 };
 
 // Prompt Modal for Folder Conversion
 class PromptModal extends Modal {
-    private message: string;
-    private resolve: (value: string | null) => void;
+  private message: string;
+  private resolve: (value: string | null) => void;
 
-    constructor(app: App, message: string, resolve: (value: string | null) => void) {
-        super(app);
-        this.message = message;
-        this.resolve = resolve;
-    }
+  constructor(
+    app: App,
+    message: string,
+    resolve: (value: string | null) => void
+  ) {
+    super(app);
+    this.message = message;
+    this.resolve = resolve;
+  }
 
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.createEl("h2", { text: this.message });
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl('h2', { text: this.message });
 
-        const input = contentEl.createEl("input", {
-            type: "text",
-            placeholder: "Enter folder path",
-        });
+    const input = contentEl.createEl('input', {
+      type: 'text',
+      placeholder: 'Enter folder path',
+    });
 
-        // Accept input via Enter key or Confirm button
-        input.addEventListener("keypress", (event) => {
-            if (event.key === "Enter") {
-                this.resolve(input.value);
-                this.close();
-            }
-        });
+    // Accept input via Enter key or Confirm button
+    input.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        this.resolve(input.value);
+        this.close();
+      }
+    });
 
-        const buttonsDiv = contentEl.createDiv({ cls: 'modal-buttons' });
+    const buttonsDiv = contentEl.createDiv({ cls: 'modal-buttons' });
 
-        const confirmBtn = buttonsDiv.createEl("button", { text: "Confirm" });
-        confirmBtn.addEventListener("click", () => {
-            this.resolve(input.value);
-            this.close();
-        });
+    const confirmBtn = buttonsDiv.createEl('button', { text: 'Confirm' });
+    confirmBtn.addEventListener('click', () => {
+      this.resolve(input.value);
+      this.close();
+    });
 
-        const cancelBtn = buttonsDiv.createEl("button", { text: "Cancel" });
-        cancelBtn.addEventListener("click", () => {
-            this.resolve(null);
-            this.close();
-        });
-    }
+    const cancelBtn = buttonsDiv.createEl('button', { text: 'Cancel' });
+    cancelBtn.addEventListener('click', () => {
+      this.resolve(null);
+      this.close();
+    });
+  }
 
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-    }
+  onClose(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
 }
 
-const isObject = (item: any): item is Record<string, any> =>
-    item && typeof item === 'object' && !Array.isArray(item);
+const isObject = (item: unknown): item is Record<string, unknown> =>
+  item && typeof item === 'object' && !Array.isArray(item);
 
-export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlugin {
-    private translator!: LatexTranslator;
-    private commandHistory: CommandHistory;
-    public history = () => {
-        return this.commandHistory;
-    }
-    private errorHandler!: ErrorHandler;
-    public getErrorHandler(): ErrorHandler {
-        return this.errorHandler;
-    }
-    public parser: LatexParser;
-    public settings: LatexTranslatorSettings;
-    public activeView: MarkdownView | null = null;
-    public isProcessing = false;
+export class LatexTranslatorPlugin
+  extends Plugin
+  implements ILatexTranslatorPlugin
+{
+  private translator!: LatexTranslator;
+  private commandHistory: CommandHistory;
+  public history = (): CommandHistory => {
+    return this.commandHistory;
+  };
+  private errorHandler!: ErrorHandler;
+  public getErrorHandler(): ErrorHandler {
+    return this.errorHandler;
+  }
+  public parser: LatexParser;
+  public settings: LatexTranslatorSettings;
+  public activeView: MarkdownView | null = null;
+  public isProcessing = false;
 
-    constructor(app: App, manifest: PluginManifest) { 
-        super(app, manifest); this.settings = { ...DEFAULT_SETTINGS }; 
-        this.parser = new LatexParser(); 
-        this.commandHistory = new CommandHistory(this.app, this.settings); 
-        this.errorHandler = ErrorHandler.getInstance(this.app); 
-        this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
+  constructor(app: App, manifest: PluginManifest) {
+    super(app, manifest);
+    this.settings = { ...DEFAULT_SETTINGS };
+    this.parser = new LatexParser();
+    this.commandHistory = new CommandHistory(this.app, this.settings);
+    this.errorHandler = ErrorHandler.getInstance(this.app);
+    this.translator = new LatexTranslator(
+      this.settings,
+      this.commandHistory,
+      this.errorHandler
+    );
+  }
 
-    
-    }
+  /**
+   * Activate or reveal a view of the specified type
+   * @param viewType The type of view to activate
+   * @param _createIfNotExists Whether to create the view if it doesn't exist (default: true)
+   */
+  async activateView(
+    viewType: string = LATEX_VIEW_TYPE,
+    _createIfNotExists = true
+  ): Promise<void> {
+    const leaves = this.app.workspace.getLeavesOfType(viewType);
 
-    
-
-
-    /**
-     * Activate or reveal a view of the specified type
-     * @param viewType The type of view to activate
-     * @param _createIfNotExists Whether to create the view if it doesn't exist (default: true)
-     */
-    async activateView(viewType: string = LATEX_VIEW_TYPE, _createIfNotExists: boolean = true): Promise<void> {
-        const leaves = this.app.workspace.getLeavesOfType(viewType);
-        
-        if (leaves.length > 0) {
-            // View already exists, just reveal it
-            this.app.workspace.revealLeaf(leaves[0]);
-            return;
-        }
-
-        // Create new leaf and view
-        const leaf = this.app.workspace.getRightLeaf(false);
-        if (!leaf) {
-            logger.error('Could not create sidebar leaf');
-            if (this.settings.showNotifications) {
-                new Notice('Error: Could not create view');
-            }
-            return;
-        }
-
-        await leaf.setViewState({
-            type: viewType,
-            active: true
-        });
-
-        this.app.workspace.revealLeaf(leaf);
+    if (leaves.length > 0) {
+      // View already exists, just reveal it
+      this.app.workspace.revealLeaf(leaves[0]);
+      return;
     }
 
-    async onload() {
-        // Initialize error handler
-        this.errorHandler = ErrorHandler.getInstance(this.app);
-        this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
-        logger.info('Loading Latex Translator plugin...');
-        
-        // Initialize core components
-        this.parser = new LatexParser();
-        this.commandHistory = new CommandHistory(this.app, this.settings);
-        this.errorHandler = ErrorHandler.getInstance(this.app);
-        this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
-        
-        await this.loadSettings();
-
-        // Configure logger
-        logger.setNotifications(this.settings.showNotifications);
-
-        // Add settings tab
-        this.addSettingTab(new LatexTranslatorSettingsTab(this.app, this));
-
-        // Register views
-        this.registerView(
-            LATEX_VIEW_TYPE,
-            (leaf: WorkspaceLeaf) => new LatexView(leaf, this)
-        );
-
-        this.registerView(
-            'latex-translator-view',
-            (leaf: WorkspaceLeaf) => new LatexTranslatorView(leaf, this)
-        );
-
-        // Initialize views if they don't exist
-        if (this.app.workspace.getLeavesOfType(LATEX_VIEW_TYPE).length === 0) {
-            await this.activateView(LATEX_VIEW_TYPE);
-        }
-
-        if (this.app.workspace.getLeavesOfType('latex-translator-view').length === 0) {
-            await this.activateView('latex-translator-view');
-        }
-
-        // Add ribbon icon for LaTeX Translator
-        // Add ribbon icons for both views
-        addIcon('latex-translator', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M11 4v2H4v12h14v-6h2v8H2V4h9zm5.364-4L22 5.636l-8 8L8 8l8-8zM16 6.414L14.586 5 10 9.586 11.414 11 16 6.414z"/></svg>`);
-        
-        const mainRibbonIcon = this.addRibbonIcon('latex-translator', 'LaTeX Translator', () => {
-            this.activateView(LATEX_VIEW_TYPE);
-        });
-        mainRibbonIcon.addClass('latex-translator-ribbon-icon');
-
-        const translatorRibbonIcon = this.addRibbonIcon('latex-translator', 'LaTeX Preview', () => {
-            this.activateView('latex-translator-view');
-        });
-        translatorRibbonIcon.addClass('latex-preview-ribbon-icon');
-
-        // Add commands
-        this.addCommand({
-            id: 'latex-to-obsidian',
-            name: 'Convert LaTeX to Obsidian',
-            editorCallback: (editor: Editor) => {
-                try {
-                    const text = editor.getSelection() || editor.getValue();
-                    const converted = this.parser.parse(text, { 
-                        direction: 'latex-to-obsidian',
-                        preserveLabels: !this.settings.labelAndReference.removeLabels,
-                        numberEquations: this.settings.autoNumberEquations
-                    });
-                    
-                    if (editor.getSelection()) {
-                        editor.replaceSelection(converted);
-                    } else {
-                        editor.setValue(converted);
-                    }
-
-                    if (this.settings.showNotifications) {
-                        new Notice('LaTeX converted successfully!');
-                    }
-                } catch (error) {
-                    logger.error('Error converting LaTeX:', error);
-                    if (this.settings.showNotifications) {
-                        new Notice('Error converting LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                    }
-                }
-            }
-        });
-
-        this.addCommand({
-            id: 'obsidian-to-latex',
-            name: 'Convert Obsidian to LaTeX',
-            editorCallback: (editor: Editor) => {
-                try {
-                    const text = editor.getSelection() || editor.getValue();
-                    const converted = this.parser.parse(text, { 
-                        direction: 'obsidian-to-latex'
-                    });
-                    
-                    if (editor.getSelection()) {
-                        editor.replaceSelection(converted);
-                    } else {
-                        editor.setValue(converted);
-                    }
-
-                    if (this.settings.showNotifications) {
-                        new Notice('Obsidian converted to LaTeX successfully!');
-                    }
-                } catch (error) {
-                    logger.error('Error converting to LaTeX:', error);
-                    if (this.settings.showNotifications) {
-                        new Notice('Error converting to LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                    }
-                }
-            }
-        });
-
-        this.addCommand({
-            id: 'convert-selection-to-obsidian-latex',
-            name: 'Convert Selection',
-            icon: 'function',
-            hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'L' }],
-            editorCallback: (editor: Editor) => {
-                const selection = editor.getSelection();
-                if (selection) {
-                    try {
-                        const converted = this.parser.parse(selection, { 
-                            direction: 'latex-to-obsidian',
-                            preserveLabels: !this.settings.labelAndReference.removeLabels,
-                            numberEquations: this.settings.autoNumberEquations
-                        });
-                        editor.replaceSelection(converted);
-                        if (this.settings.showNotifications) {
-                            new Notice('LaTeX converted successfully!');
-                        }
-                    } catch (error) {
-                        logger.error('Error converting LaTeX:', error);
-                        if (this.settings.showNotifications) {
-                            new Notice('Error converting LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                        }
-                    }
-                }
-            }
-        });
-
-        this.addCommand({
-            id: 'convert-folder-to-obsidian-latex',
-            name: 'Convert Folder',
-            icon: 'folder-plus',
-            callback: async () => {
-                try {
-                    const folderPath = await new Promise<string | null>((resolve) => {
-                        new PromptModal(
-                            this.app,
-                            'Enter the folder path to convert:',
-                            resolve
-                        ).open();
-                    });
-
-                    if (!folderPath) {
-                        return;
-                    }
-
-                    const targetFolder = this.app.vault.getAbstractFileByPath(folderPath);
-                    if (!this.isTFolder(targetFolder)) {
-                        new Notice('Selected path is not a folder');
-                        return;
-                    }
-
-                    const files = targetFolder.children
-                        .filter((file): file is TFile =>
-                            file instanceof TFile && file.extension === 'md'
-                        );
-
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const file of files) {
-                        try {
-                            const content = await this.app.vault.read(file);
-                            const converted = this.parser.parse(content, { 
-                                direction: 'latex-to-obsidian',
-                                preserveLabels: !this.settings.labelAndReference.removeLabels,
-                                numberEquations: this.settings.autoNumberEquations
-                            });
-                            await this.app.vault.modify(file, converted);
-                            successCount++;
-                        } catch (error) {
-                            logger.error(`Error converting file ${file.path}:`, error);
-                            errorCount++;
-                        }
-                    }
-
-                    if (this.settings.showNotifications) {
-                        new Notice(
-                            `Conversion complete!\n${successCount} files converted successfully.\n${errorCount} files had errors.`
-                        );
-                    }
-                } catch (error) {
-                    logger.error('Error in folder conversion:', error);
-                    if (this.settings.showNotifications) {
-                        new Notice('Error converting folder: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                    }
-                }
-            }
-        });
-
-        // Add command for batch operations
-        this.addCommand({
-            id: 'open-batch-operations',
-            name: 'Open Batch Operations',
-            callback: () => {
-                new BatchOperationsModal(
-                    this.app,
-                    this.settings,
-                    this.translator,
-                    this
-                ).open();
-            },
-            hotkeys: [
-                {
-                    modifiers: ['Mod', 'Shift'],
-                    key: 'B'
-                }
-            ]
-        });
-
-        // Register event handlers
-        this.registerEvent(
-            this.app.workspace.on('editor-change', (ev: Editor) => {
-                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-                if (view) {
-                    this.handleEditorChange(ev, view);
-                }
-            })
-        );
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', this.handleActiveLeafChange.bind(this))
-        );
-
-        logger.info('Latex Translator plugin loaded successfully');
-
-        this.addCommand({
-            id: 'convert-latex-to-obsidian',
-            name: 'Convert LaTeX to Obsidian',
-            editorCallback: (editor) => {
-                this.handleLatexToObsidian(editor);
-            }
-        });
-
-        this.addCommand({
-            id: 'convert-obsidian-to-latex',
-            name: 'Convert Obsidian to LaTeX',
-            editorCallback: (editor) => {
-                this.handleObsidianToLatex(editor);
-            }
-        });
+    // Create new leaf and view
+    const leaf = this.app.workspace.getRightLeaf(false);
+    if (!leaf) {
+      logger.error('Could not create sidebar leaf');
+      if (this.settings.showNotifications) {
+        new Notice('Error: Could not create view');
+      }
+      return;
     }
 
-    /**
-     * Consolidated editor operation handler
-     */
-    private async handleEditorOperation(
-        editor: Editor, 
-        operation: (text: string) => string
+    await leaf.setViewState({
+      type: viewType,
+      active: true,
+    });
+
+    this.app.workspace.revealLeaf(leaf);
+  }
+
+  async onload(): Promise<void> {
+    console.debug('LaTeX Translator Plugin: Loading plugin...');
+    // Initialize error handler
+    this.errorHandler = ErrorHandler.getInstance(this.app);
+    this.translator = new LatexTranslator(
+      this.settings,
+      this.commandHistory,
+      this.errorHandler
+    );
+    logger.info('Loading Latex Translator plugin...');
+
+    // Initialize core components
+    this.parser = new LatexParser();
+    this.commandHistory = new CommandHistory(this.app, this.settings);
+    this.errorHandler = ErrorHandler.getInstance(this.app);
+    this.translator = new LatexTranslator(
+      this.settings,
+      this.commandHistory,
+      this.errorHandler
+    );
+
+    await this.loadSettings();
+
+    // Configure logger
+    logger.setNotifications(this.settings.showNotifications);
+
+    // Add settings tab
+    this.addSettingTab(new LatexTranslatorSettingsTab(this.app, this));
+
+    // Register views
+    this.registerView(
+      LATEX_VIEW_TYPE,
+      (leaf: WorkspaceLeaf) => new LatexView(leaf, this)
+    );
+
+    this.registerView(
+      'latex-translator-view',
+      (leaf: WorkspaceLeaf) => new LatexTranslatorView(leaf, this)
+    );
+
+    // Initialize views if they don't exist
+    if (this.app.workspace.getLeavesOfType(LATEX_VIEW_TYPE).length === 0) {
+      await this.activateView(LATEX_VIEW_TYPE);
+    }
+
+    if (
+      this.app.workspace.getLeavesOfType('latex-translator-view').length === 0
     ) {
+      await this.activateView('latex-translator-view');
+    }
+
+    // Add ribbon icon for LaTeX Translator
+    // Add ribbon icons for both views
+    addIcon(
+      'latex-translator',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M11 4v2H4v12h14v-6h2v8H2V4h9zm5.364-4L22 5.636l-8 8L8 8l8-8zM16 6.414L14.586 5 10 9.586 11.414 11 16 6.414z"/></svg>`
+    );
+
+    const mainRibbonIcon = this.addRibbonIcon(
+      'latex-translator',
+      'LaTeX Translator',
+      () => {
+        this.activateView(LATEX_VIEW_TYPE);
+      }
+    );
+    mainRibbonIcon.addClass('latex-translator-ribbon-icon');
+
+    const translatorRibbonIcon = this.addRibbonIcon(
+      'latex-translator',
+      'LaTeX Preview',
+      () => {
+        this.activateView('latex-translator-view');
+      }
+    );
+    translatorRibbonIcon.addClass('latex-preview-ribbon-icon');
+
+    // Add commands
+    this.addCommand({
+      id: 'latex-to-obsidian',
+      name: 'Convert LaTeX to Obsidian',
+      editorCallback: (editor: Editor) => {
         try {
-            const selection = editor.getSelection();
-            const result = operation(selection || editor.getValue());
-            
-            if (selection) {
-                editor.replaceSelection(result);
-            } else {
-                editor.setValue(result);
-            }
+          const text = editor.getSelection() || editor.getValue();
+          const converted = this.parser.parse(text, {
+            direction: 'latex-to-obsidian',
+            preserveLabels: !this.settings.labelAndReference.removeLabels,
+            numberEquations: this.settings.autoNumberEquations,
+          });
 
-            // Refresh preview if in preview mode
-            if (this.isPreviewMode()) {
-                await this.refreshPreview();
-            }
+          if (editor.getSelection()) {
+            editor.replaceSelection(converted);
+          } else {
+            editor.setValue(converted);
+          }
 
-            if (this.settings.showNotifications) {
-                new Notice('Conversion completed successfully!');
-            }
+          if (this.settings.showNotifications) {
+            new Notice('LaTeX converted successfully!');
+          }
         } catch (error) {
-            console.error('Error during editor operation:', error);
-            if (this.settings.showNotifications) {
-                new Notice('Error during conversion: ' + (error instanceof Error ? error.message : 'Unknown error'));
-            }
-        }
-    }
-
-    /**
-     * Check if current view is in preview mode
-     */
-    private isPreviewMode(): boolean {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        return view?.getMode() === 'preview';
-    }
-
-    /**
-     * Refresh the preview pane
-     */
-    public async refreshPreview() {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view?.previewMode) {
-            await view.previewMode.rerender(true);
-        }
-    }
-
-    /**
-     * Handle editor changes for immediate rendering
-     */
-    private async handleEditorChange(editor: Editor, markdownView: MarkdownView) {
-        if (!this.settings.renderImmediately || this.isProcessing) {
-            return;
-        }
-
-        try {
-            this.isProcessing = true;
-            const content = editor.getValue();
-            const mathContent = this.parser.parse(content, {
-                direction: 'latex-to-obsidian',
-                preserveLabels: !this.settings.labelAndReference.removeLabels,
-                numberEquations: this.settings.autoNumberEquations
-            });
-            
-            editor.setValue(mathContent);
-            
-            // Only refresh preview if we're in preview mode
-            if (markdownView.getMode() === 'preview') {
-                await this.refreshPreview();
-            }
-        } catch (error) {
-            logger.error('Error in immediate rendering:', error);
-            if (this.settings.showNotifications) {
-                new Notice('Error in immediate rendering: ' + (error instanceof Error ? error.message : 'Unknown error'));
-            }
-        } finally {
-            this.isProcessing = false;
-        }
-    }
-
-    /**
-     * Handle active leaf changes for immediate rendering
-     */
-    private async handleActiveLeafChange(leaf: WorkspaceLeaf | null) {
-        if (!leaf) {
-            this.activeView = null;
-            return;
-        }
-
-        const {view} = leaf;
-        if (view instanceof MarkdownView) {
-            this.activeView = view;
-            if (this.settings.renderImmediately) {
-                const content = view.editor.getValue();
-                const mathContent = this.parser.parse(content, {
-                    direction: 'latex-to-obsidian',
-                    preserveLabels: !this.settings.labelAndReference.removeLabels,
-                    numberEquations: this.settings.autoNumberEquations
-                });
-                
-                view.editor.setValue(mathContent);
-                await this.refreshPreview();
-            }
-        } else {
-            this.activeView = null;
-        }
-    }
-
-    /**
-     * Check if a file is a folder
-     */
-    /**
-     * Handle LaTeX to Obsidian conversion
-     */
-    private async handleLatexToObsidian(editor: Editor): Promise<void> {
-        if (this.isProcessing) {
-            new Notice('A conversion is already in progress');
-            return;
-        }
-
-        this.isProcessing = true;
-        try {
-            const operation = async (text: string) => {
-                const { translatedContent, error } = await this.translator.translateContent(
-                    text,
-                    undefined,
-                    {
-                        preserveLabels: !this.settings.labelAndReference.removeLabels,
-                        numberEquations: this.settings.autoNumberEquations
-                    }
-                );
-
-                if (error) {
-                    logger.error('Translation error:', error);
-                    if (this.settings.showNotifications) {
-                        new Notice('Error converting LaTeX: ' + error.lastError?.message);
-                    }
-                    return; // <--- Added a comma after the return statement
-                }
-
-                if (editor.getSelection()) {
-                    editor.replaceSelection(translatedContent);
-                } else {
-                    editor.setValue(translatedContent);
-                }
-
-                if (this.settings.showNotifications) {
-                    new Notice('LaTeX converted successfully!');
-                }
-
-            };
-
-            const text = editor.getSelection() || editor.getValue();
-            const { translatedContent, error } = await this.translator.translateContent(
-                text,
-                undefined,
-                { 
-                }
+          logger.error('Error converting LaTeX:', error);
+          if (this.settings.showNotifications) {
+            new Notice(
+              'Error converting LaTeX: ' +
+                (error instanceof Error ? error.message : 'Unknown error')
             );
+          }
+        }
+      },
+    });
 
-            if (error) {
-                logger.error('Translation error:', error);
-                if (this.settings.showNotifications) {
-                    new Notice('Error converting to LaTeX: ' + error.lastError?.message);
-                }
-                return;
-            }
+    this.addCommand({
+      id: 'obsidian-to-latex',
+      name: 'Convert Obsidian to LaTeX',
+      editorCallback: (editor: Editor) => {
+        try {
+          const text = editor.getSelection() || editor.getValue();
+          const converted = this.parser.parse(text, {
+            direction: 'obsidian-to-latex',
+          });
 
-            if (editor.getSelection()) {
-                editor.replaceSelection(translatedContent);
-            } else {
-                editor.setValue(translatedContent);
-            }
+          if (editor.getSelection()) {
+            editor.replaceSelection(converted);
+          } else {
+            editor.setValue(converted);
+          }
 
-            if (this.settings.showNotifications) {
-                new Notice('Converted to LaTeX successfully!');
-            }
+          if (this.settings.showNotifications) {
+            new Notice('Obsidian converted to LaTeX successfully!');
+          }
         } catch (error) {
+          logger.error('Error converting to LaTeX:', error);
+          if (this.settings.showNotifications) {
+            new Notice(
+              'Error converting to LaTeX: ' +
+                (error instanceof Error ? error.message : 'Unknown error')
+            );
+          }
+        }
+      },
+    });
+
+    this.addCommand({
+      id: 'convert-selection-to-obsidian-latex',
+      name: 'Convert Selection',
+      icon: 'function',
+      hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'L' }],
+      editorCallback: (editor: Editor) => {
+        const selection = editor.getSelection();
+        if (selection) {
+          try {
+            const converted = this.parser.parse(selection, {
+              direction: 'latex-to-obsidian',
+              preserveLabels: !this.settings.labelAndReference.removeLabels,
+              numberEquations: this.settings.autoNumberEquations,
+            });
+            editor.replaceSelection(converted);
+            if (this.settings.showNotifications) {
+              new Notice('LaTeX converted successfully!');
+            }
+          } catch (error) {
             logger.error('Error converting LaTeX:', error);
             if (this.settings.showNotifications) {
-                new Notice('Error converting LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
+              new Notice(
+                'Error converting LaTeX: ' +
+                  (error instanceof Error ? error.message : 'Unknown error')
+              );
             }
-        } finally {
-            this.isProcessing = false;
+          }
         }
-    }
+      },
+    });
 
-    /**
-     * Handle Obsidian to LaTeX conversion
-     */
-    private async handleObsidianToLatex(editor: Editor): Promise<void> {
-        if (this.isProcessing) {
-            new Notice('A conversion is already in progress');
-            return;
-        }
-
-        this.isProcessing = true;
+    this.addCommand({
+      id: 'convert-folder-to-obsidian-latex',
+      name: 'Convert Folder',
+      icon: 'folder-plus',
+      callback: async () => {
         try {
-            const text = editor.getSelection() || editor.getValue();
-            const { translatedContent, error } = await this.translator.translateContent(
-                text,
-                undefined,
-                { 
-                }
+          const folderPath = await new Promise<string | null>((resolve) => {
+            new PromptModal(
+              this.app,
+              'Enter the folder path to convert:',
+              resolve
+            ).open();
+          });
+
+          if (!folderPath) {
+            return;
+          }
+
+          const targetFolder = this.app.vault.getAbstractFileByPath(folderPath);
+          if (!this.isTFolder(targetFolder)) {
+            new Notice('Selected path is not a folder');
+            return;
+          }
+
+          const files = targetFolder.children.filter(
+            (file): file is TFile =>
+              file instanceof TFile && file.extension === 'md'
+          );
+
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const file of files) {
+            try {
+              const content = await this.app.vault.read(file);
+              const converted = this.parser.parse(content, {
+                direction: 'latex-to-obsidian',
+                preserveLabels: !this.settings.labelAndReference.removeLabels,
+                numberEquations: this.settings.autoNumberEquations,
+              });
+              await this.app.vault.modify(file, converted);
+              successCount++;
+            } catch (error) {
+              logger.error(`Error converting file ${file.path}:`, error);
+              errorCount++;
+            }
+          }
+
+          if (this.settings.showNotifications) {
+            new Notice(
+              `Conversion complete!\n${successCount} files converted successfully.\n${errorCount} files had errors.`
             );
-
-            if (error) {
-                logger.error('Translation error:', error);
-                if (this.settings.showNotifications) {
-                    new Notice('Error converting to LaTeX: ' + error.lastError?.message);
-                }
-                return;
-            }
-
-            if (editor.getSelection()) {
-                editor.replaceSelection(translatedContent);
-            } else {
-                editor.setValue(translatedContent);
-            }
-
-            if (this.settings.showNotifications) {
-                new Notice('Converted to LaTeX successfully!');
-            }
+          }
         } catch (error) {
-            logger.error('Error converting to LaTeX:', error);
-            if (this.settings.showNotifications) {
-                new Notice('Error converting to LaTeX: ' + (error instanceof Error ? error.message : 'Unknown error'));
-            }
-        } finally {
-            this.isProcessing = false;
+          logger.error('Error in folder conversion:', error);
+          if (this.settings.showNotifications) {
+            new Notice(
+              'Error converting folder: ' +
+                (error instanceof Error ? error.message : 'Unknown error')
+            );
+          }
         }
+      },
+    });
+
+    // Add command for batch operations
+    this.addCommand({
+      id: 'open-batch-operations',
+      name: 'Open Batch Operations',
+      callback: () => {
+        new BatchOperationsModal(
+          this.app,
+          this.settings,
+          this.translator,
+          this
+        ).open();
+      },
+      hotkeys: [
+        {
+          modifiers: ['Mod', 'Shift'],
+          key: 'B',
+        },
+      ],
+    });
+
+    // Register event handlers
+    this.registerEvent(
+      this.app.workspace.on('editor-change', (ev: Editor) => {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view) {
+          this.handleEditorChange(ev, view);
+        }
+      })
+    );
+
+    this.registerEvent(
+      this.app.workspace.on(
+        'active-leaf-change',
+        this.handleActiveLeafChange.bind(this)
+      )
+    );
+
+    logger.info('Latex Translator plugin loaded successfully');
+
+    this.addCommand({
+      id: 'convert-latex-to-obsidian',
+      name: 'Convert LaTeX to Obsidian',
+      editorCallback: (editor) => {
+        this.handleLatexToObsidian(editor);
+      },
+    });
+
+    this.addCommand({
+      id: 'convert-obsidian-to-latex',
+      name: 'Convert Obsidian to LaTeX',
+      editorCallback: (editor) => {
+        this.handleObsidianToLatex(editor);
+      },
+    });
+  }
+
+  /**
+   * Consolidated editor operation handler
+   */
+  private async handleEditorOperation(
+    editor: Editor,
+    operation: (text: string) => string
+  ): Promise<void> {
+    try {
+      const selection = editor.getSelection();
+      const result = operation(selection || editor.getValue());
+
+      if (selection) {
+        editor.replaceSelection(result);
+      } else {
+        editor.setValue(result);
+      }
+
+      // Refresh preview if in preview mode
+      if (this.isPreviewMode()) {
+        await this.refreshPreview();
+      }
+
+      if (this.settings.showNotifications) {
+        new Notice('Conversion completed successfully!');
+      }
+    } catch (error) {
+      console.error('Error during editor operation:', error);
+      if (this.settings.showNotifications) {
+        new Notice(
+          'Error during conversion: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        );
+      }
+    }
+  }
+
+  /**
+   * Check if current view is in preview mode
+   */
+  private isPreviewMode(): boolean {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    return view?.getMode() === 'preview';
+  }
+
+  /**
+   * Refresh the preview pane
+   */
+  public async refreshPreview(): Promise<void> {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (view?.previewMode) {
+      await view.previewMode.rerender(true);
+    }
+  }
+
+  /**
+   * Handle editor changes for immediate rendering
+   */
+  private async handleEditorChange(
+    editor: Editor,
+    markdownView: MarkdownView
+  ): Promise<void> {
+    if (!this.settings.renderImmediately || this.isProcessing) {
+      return;
     }
 
-    public isTFolder(file: TAbstractFile | null): file is TFolder {
-        return file instanceof TFolder;
+    try {
+      this.isProcessing = true;
+      const content = editor.getValue();
+      const mathContent = this.parser.parse(content, {
+        direction: 'latex-to-obsidian',
+        preserveLabels: !this.settings.labelAndReference.removeLabels,
+        numberEquations: this.settings.autoNumberEquations,
+      });
+
+      editor.setValue(mathContent);
+
+      // Only refresh preview if we're in preview mode
+      if (markdownView.getMode() === 'preview') {
+        await this.refreshPreview();
+      }
+    } catch (error) {
+      logger.error('Error in immediate rendering:', error);
+      if (this.settings.showNotifications) {
+        new Notice(
+          'Error in immediate rendering: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        );
+      }
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * Handle active leaf changes for immediate rendering
+   */
+  private async handleActiveLeafChange(
+    leaf: WorkspaceLeaf | null
+  ): Promise<void> {
+    if (!leaf) {
+      this.activeView = null;
+      return;
     }
 
-    private deepMerge(target: any, source: any): any {
-        // If either target or source is not an object, return source
-        if (!isObject(target) || !isObject(source)) {
-            return source;
-        }
-
-        const output = { ...target };
-        
-        // Ensure all keys from DEFAULT_SETTINGS exist in output
-        Object.keys(source).forEach(key => {
-            if (isObject(source[key])) {
-                // If key doesn't exist in target, initialize it with empty object
-                if (!(key in target)) {
-                    output[key] = {};
-                }
-                // Always recursively merge objects
-                output[key] = this.deepMerge(target[key], source[key]);
-            } else if (Array.isArray(source[key])) {
-                // For arrays, create a new array with source values
-                output[key] = [...source[key]];
-            } else {
-                // For primitive values, use source value
-                output[key] = source[key];
-            }
+    const { view } = leaf;
+    if (view instanceof MarkdownView) {
+      this.activeView = view;
+      if (this.settings.renderImmediately) {
+        const content = view.editor.getValue();
+        const mathContent = this.parser.parse(content, {
+          direction: 'latex-to-obsidian',
+          preserveLabels: !this.settings.labelAndReference.removeLabels,
+          numberEquations: this.settings.autoNumberEquations,
         });
-        
-        return output;
+
+        view.editor.setValue(mathContent);
+        await this.refreshPreview();
+      }
+    } else {
+      this.activeView = null;
+    }
+  }
+
+  /**
+   * Check if a file is a folder
+   */
+  /**
+   * Handle LaTeX to Obsidian conversion
+   */
+  private async handleLatexToObsidian(editor: Editor): Promise<void> {
+    console.debug('LaTeX Translator: Converting LaTeX to Obsidian...');
+    if (this.isProcessing) {
+      new Notice('A conversion is already in progress');
+      return;
     }
 
-    public async loadSettings(): Promise<void> {
-        const savedData = await this.loadData() || {};
-        
-        // Ensure labelAndReference exists and has all required properties
-        if (!savedData.labelAndReference) {
-            savedData.labelAndReference = DEFAULT_SETTINGS.labelAndReference;
+    this.isProcessing = true;
+    try {
+      const text = editor.getSelection() || editor.getValue();
+      const { translatedContent, error } =
+        await this.translator.translateContent(text, undefined, {
+          preserveLabels: !this.settings.labelAndReference.removeLabels,
+          numberEquations: this.settings.autoNumberEquations,
+        });
+
+      if (error) {
+        logger.error('Translation error:', error);
+        if (this.settings.showNotifications) {
+          new Notice('Error converting LaTeX: ' + error.lastError?.message);
         }
-        else if (!savedData.labelAndReference.autoNumbering) {
-            savedData.labelAndReference.autoNumbering = DEFAULT_SETTINGS.labelAndReference.autoNumbering;
-        }
-        
-        this.settings = this.deepMerge(DEFAULT_SETTINGS, savedData);
-        
-        // Update translator settings
-        if (this.translator) {
-            this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
-        }
+        return;
+      }
+
+      if (editor.getSelection()) {
+        editor.replaceSelection(translatedContent);
+      } else {
+        editor.setValue(translatedContent);
+      }
+
+      if (this.settings.showNotifications) {
+        new Notice('LaTeX converted successfully!');
+      }
+    } catch (error) {
+      logger.error('Unexpected error during conversion:', error);
+      if (this.settings.showNotifications) {
+        new Notice('Unexpected error during conversion');
+      }
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * Handle Obsidian to LaTeX conversion
+   */
+  private async handleObsidianToLatex(editor: Editor): Promise<void> {
+    console.debug('LaTeX Translator: Converting Obsidian to LaTeX...');
+    if (this.isProcessing) {
+      new Notice('A conversion is already in progress');
+      return;
     }
 
-    public async saveSettings(): Promise<void> {
-        await this.saveData(this.settings);
-        logger.setNotifications(this.settings.showNotifications);
-    }
+    this.isProcessing = true;
+    try {
+      const text = editor.getSelection() || editor.getValue();
+      const { translatedContent, error } =
+        await this.translator.translateContent(text, undefined, {});
 
-    public getSettings(): LatexTranslatorSettings {
-        return this.settings;
-    }
-
-    public setSettings(settings: LatexTranslatorSettings): void {
-        this.settings = settings;
-        this.saveSettings();
-        // Update translator settings
-        if (this.translator) {
-            this.translator = new LatexTranslator(settings, this.commandHistory, this.errorHandler);
+      if (error) {
+        logger.error('Translation error:', error);
+        if (this.settings.showNotifications) {
+          new Notice('Error converting to LaTeX: ' + error.lastError?.message);
         }
+        return;
+      }
+
+      if (editor.getSelection()) {
+        editor.replaceSelection(translatedContent);
+      } else {
+        editor.setValue(translatedContent);
+      }
+
+      if (this.settings.showNotifications) {
+        new Notice('Converted to LaTeX successfully!');
+      }
+    } catch (error) {
+      logger.error('Error converting to LaTeX:', error);
+      if (this.settings.showNotifications) {
+        new Notice(
+          'Error converting to LaTeX: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        );
+      }
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  public isTFolder(file: TAbstractFile | null): file is TFolder {
+    return file instanceof TFolder;
+  }
+
+  private deepMerge<T extends Record<string, unknown>>(
+    target: T,
+    source: Partial<T>
+  ): T {
+    // If either target or source is not an object, return source
+    if (!isObject(target) || !isObject(source)) {
+      return source;
     }
 
-    onunload() {
-        logger.info('Unloading Latex Translator plugin...');
-        
-        // Clean up view
-        if (this.activeView) {
-            this.app.workspace.detachLeavesOfType(LATEX_VIEW_TYPE);
-            this.activeView = null;
+    const output = { ...target };
+
+    // Ensure all keys from DEFAULT_SETTINGS exist in output
+    Object.keys(source).forEach((key) => {
+      if (isObject(source[key])) {
+        // If key doesn't exist in target, initialize it with empty object
+        if (!(key in target)) {
+          output[key] = {};
         }
+        // Always recursively merge objects
+        output[key] = this.deepMerge(target[key], source[key]);
+      } else if (Array.isArray(source[key])) {
+        // For arrays, create a new array with source values
+        output[key] = [...source[key]];
+      } else {
+        // For primitive values, use source value
+        output[key] = source[key];
+      }
+    });
+
+    return output;
+  }
+
+  public async loadSettings(): Promise<void> {
+    const savedData = (await this.loadData()) || {};
+
+    // Ensure labelAndReference exists and has all required properties
+    if (!savedData.labelAndReference) {
+      savedData.labelAndReference = DEFAULT_SETTINGS.labelAndReference;
+    } else if (!savedData.labelAndReference.autoNumbering) {
+      savedData.labelAndReference.autoNumbering =
+        DEFAULT_SETTINGS.labelAndReference.autoNumbering;
     }
+
+    this.settings = this.deepMerge(DEFAULT_SETTINGS, savedData);
+
+    // Update translator settings
+    if (this.translator) {
+      this.translator = new LatexTranslator(
+        this.settings,
+        this.commandHistory,
+        this.errorHandler
+      );
+    }
+  }
+
+  public async saveSettings(): Promise<void> {
+    await this.saveData(this.settings);
+    logger.setNotifications(this.settings.showNotifications);
+  }
+
+  public getSettings(): LatexTranslatorSettings {
+    return this.settings;
+  }
+
+  public setSettings(settings: LatexTranslatorSettings): void {
+    this.settings = settings;
+    this.saveSettings();
+    // Update translator settings
+    if (this.translator) {
+      this.translator = new LatexTranslator(
+        settings,
+        this.commandHistory,
+        this.errorHandler
+      );
+    }
+  }
+
+  onunload(): void {
+    logger.info('Unloading Latex Translator plugin...');
+
+    // Clean up view
+    if (this.activeView) {
+      this.app.workspace.detachLeavesOfType(LATEX_VIEW_TYPE);
+      this.activeView = null;
+    }
+  }
 }
 
 export default LatexTranslatorPlugin;

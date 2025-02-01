@@ -34,7 +34,10 @@ const ViewContent: React.FC<ViewContentProps> = ({ plugin: _plugin }) => {
 
   return (
     <ViewContainer>
-      <TransformationControls options={parserOptions} onOptionsChange={setParserOptions} />
+      <TransformationControls
+        options={parserOptions}
+        onOptionsChange={setParserOptions}
+      />
       <PreviewPanel />
     </ViewContainer>
   );
@@ -65,7 +68,7 @@ export class LatexTranslatorView extends ItemView {
     this.root = createRoot(container.children[0]);
     this.root.render(
       <React.StrictMode>
-        <AppProvider app={(this.app as any)}>
+        <AppProvider app={this.app}>
           <ViewContent plugin={this.plugin} />
         </AppProvider>
       </React.StrictMode>

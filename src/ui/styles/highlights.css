@@ -2,213 +2,232 @@
 
 /* Base Highlight Styles */
 .latex-highlight {
-    position: relative;
-    border-radius: 2px;
-    padding: 2px 4px;
-    margin: 0 -4px;
+  position: relative;
+  border-radius: 2px;
+  padding: 2px 4px;
+  margin: 0 -4px;
 }
 
 /* Error Highlights */
 .latex-highlight-error {
-    background-color: var(--latex-error-light);
-    border-bottom: 2px dotted var(--latex-error);
+  background-color: var(--latex-error-light);
+  border-bottom: 2px dotted var(--latex-error);
 }
 
 .latex-highlight-error::before {
-    content: '⚠️';
-    position: absolute;
-    left: -20px;
-    opacity: 0.7;
+  content: '⚠️';
+  position: absolute;
+  left: -20px;
+  opacity: 0.7;
 }
 
 /* Warning Highlights */
 .latex-highlight-warning {
-    background-color: var(--latex-warning-light);
-    border-bottom: 2px dotted var(--latex-warning);
+  background-color: var(--latex-warning-light);
+  border-bottom: 2px dotted var(--latex-warning);
 }
 
 .latex-highlight-warning::before {
-    content: '⚠';
-    position: absolute;
-    left: -20px;
-    opacity: 0.7;
+  content: '⚠';
+  position: absolute;
+  left: -20px;
+  opacity: 0.7;
 }
 
 /* Info Highlights */
 .latex-highlight-info {
-    background-color: var(--latex-info-light);
-    border-bottom: 2px dotted var(--latex-accent);
+  background-color: var(--latex-info-light);
+  border-bottom: 2px dotted var(--latex-accent);
 }
 
 .latex-highlight-info::before {
-    content: 'ℹ️';
-    position: absolute;
-    left: -20px;
-    opacity: 0.7;
+  content: 'ℹ️';
+  position: absolute;
+  left: -20px;
+  opacity: 0.7;
 }
 
 /* Success Highlights */
 .latex-highlight-success {
-    background-color: var(--latex-success-light);
-    border-bottom: 2px dotted var(--latex-success);
+  background-color: var(--latex-success-light);
+  border-bottom: 2px dotted var(--latex-success);
 }
 
 .latex-highlight-success::before {
-    content: '✓';
-    position: absolute;
-    left: -20px;
-    opacity: 0.7;
+  content: '✓';
+  position: absolute;
+  left: -20px;
+  opacity: 0.7;
 }
 
 /* Highlight Patterns */
 .latex-highlight-dotted {
-    border-bottom-style: dotted;
+  border-bottom-style: dotted;
 }
 
 .latex-highlight-dashed {
-    border-bottom-style: dashed;
+  border-bottom-style: dashed;
 }
 
 .latex-highlight-solid {
-    border-bottom-style: solid;
+  border-bottom-style: solid;
 }
 
 .latex-highlight-wavy {
-    border-bottom-style: wavy;
+  border-bottom-style: wavy;
 }
 
 /* Highlight Tooltips */
 .latex-highlight-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 4px 8px;
-    background-color: var(--latex-background);
-    border: 1px solid var(--latex-border);
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 1000;
-    box-shadow: 0 2px 4px var(--latex-shadow);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background-color: var(--latex-background);
+  border: 1px solid var(--latex-border);
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 4px var(--latex-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
 }
 
 .latex-highlight:hover .latex-highlight-tooltip {
-    opacity: 1;
-    visibility: visible;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Highlight Animations */
 .latex-highlight-pulse {
-    animation: highlightPulse 2s infinite;
+  animation: highlightPulse 2s infinite;
 }
 
 .latex-highlight-flash {
-    animation: highlightFlash 1s;
+  animation: highlightFlash 1s;
 }
 
 .latex-highlight-shake {
-    animation: highlightShake 0.5s;
+  animation: highlightShake 0.5s;
 }
 
 @keyframes highlightPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes highlightFlash {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.5; }
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes highlightShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
 }
 
 /* Highlight Groups */
 .latex-highlight-group {
-    position: relative;
-    margin-left: 16px;
-    padding-left: 8px;
+  position: relative;
+  margin-left: 16px;
+  padding-left: 8px;
 }
 
 .latex-highlight-group::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: var(--latex-border);
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--latex-border);
 }
 
 .latex-highlight-group-error::before {
-    background-color: var(--latex-error);
+  background-color: var(--latex-error);
 }
 
 .latex-highlight-group-warning::before {
-    background-color: var(--latex-warning);
+  background-color: var(--latex-warning);
 }
 
 .latex-highlight-group-info::before {
-    background-color: var(--latex-accent);
+  background-color: var(--latex-accent);
 }
 
 .latex-highlight-group-success::before {
-    background-color: var(--latex-success);
+  background-color: var(--latex-success);
 }
 
 /* Highlight Badges */
 .latex-highlight-badge {
-    position: absolute;
-    right: -4px;
-    top: -4px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: bold;
-    color: var(--text-on-accent);
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--text-on-accent);
 }
 
 .latex-highlight-badge-error {
-    background-color: var(--latex-error);
+  background-color: var(--latex-error);
 }
 
 .latex-highlight-badge-warning {
-    background-color: var(--latex-warning);
+  background-color: var(--latex-warning);
 }
 
 .latex-highlight-badge-info {
-    background-color: var(--latex-accent);
+  background-color: var(--latex-accent);
 }
 
 .latex-highlight-badge-success {
-    background-color: var(--latex-success);
+  background-color: var(--latex-success);
 }
 
 /* Highlight Counters */
 .latex-highlight-counter {
-    position: absolute;
-    right: -24px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 10px;
-    color: var(--latex-secondary);
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--latex-secondary);
 }
 
 /* Highlight Links */
 .latex-highlight-link {
-    cursor: pointer;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 2px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
 }
 
 .latex-highlight-link:hover {
-    text-decoration-style: solid;
+  text-decoration-style: solid;
 }

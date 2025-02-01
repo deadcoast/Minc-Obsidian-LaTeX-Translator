@@ -1,267 +1,283 @@
 /* Theme Integration */
 .theme-light {
-    --latex-primary: var(--text-normal);
-    --latex-secondary: var(--text-muted);
-    --latex-accent: var(--interactive-accent);
-    --latex-accent-hover: var(--interactive-accent-hover);
-    --latex-success: var(--text-success);
-    --latex-error: var(--text-error);
-    --latex-warning: var(--text-warning);
-    --latex-background: var(--background-primary);
-    --latex-background-secondary: var(--background-secondary);
-    --latex-border: var(--background-modifier-border);
-    --latex-shadow: rgba(0, 0, 0, 0.1);
-    
-    /* Custom Light Theme Colors */
-    --latex-error-light: rgba(255, 76, 76, 0.1);
-    --latex-warning-light: rgba(255, 190, 76, 0.1);
-    --latex-success-light: rgba(76, 255, 128, 0.1);
-    --latex-info-light: rgba(76, 166, 255, 0.1);
-    
-    /* Syntax Highlighting - Light */
-    --latex-syntax-keyword: #d73a49;
-    --latex-syntax-function: #6f42c1;
-    --latex-syntax-string: #032f62;
-    --latex-syntax-number: #005cc5;
-    --latex-syntax-comment: #6a737d;
+  --latex-primary: var(--text-normal);
+  --latex-secondary: var(--text-muted);
+  --latex-accent: var(--interactive-accent);
+  --latex-accent-hover: var(--interactive-accent-hover);
+  --latex-success: var(--text-success);
+  --latex-error: var(--text-error);
+  --latex-warning: var(--text-warning);
+  --latex-background: var(--background-primary);
+  --latex-background-secondary: var(--background-secondary);
+  --latex-border: var(--background-modifier-border);
+  --latex-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Custom Light Theme Colors */
+  --latex-error-light: rgba(255, 76, 76, 0.1);
+  --latex-warning-light: rgba(255, 190, 76, 0.1);
+  --latex-success-light: rgba(76, 255, 128, 0.1);
+  --latex-info-light: rgba(76, 166, 255, 0.1);
+
+  /* Syntax Highlighting - Light */
+  --latex-syntax-keyword: #d73a49;
+  --latex-syntax-function: #6f42c1;
+  --latex-syntax-string: #032f62;
+  --latex-syntax-number: #005cc5;
+  --latex-syntax-comment: #6a737d;
 }
 
 .theme-dark {
-    --latex-primary: var(--text-normal);
-    --latex-secondary: var(--text-muted);
-    --latex-accent: var(--interactive-accent);
-    --latex-accent-hover: var(--interactive-accent-hover);
-    --latex-success: var(--text-success);
-    --latex-error: var(--text-error);
-    --latex-warning: var(--text-warning);
-    --latex-background: var(--background-primary);
-    --latex-background-secondary: var(--background-secondary);
-    --latex-border: var(--background-modifier-border);
-    --latex-shadow: rgba(0, 0, 0, 0.2);
-    
-    /* Custom Dark Theme Colors */
-    --latex-error-light: rgba(255, 76, 76, 0.15);
-    --latex-warning-light: rgba(255, 190, 76, 0.15);
-    --latex-success-light: rgba(76, 255, 128, 0.15);
-    --latex-info-light: rgba(76, 166, 255, 0.15);
-    
-    /* Syntax Highlighting - Dark */
-    --latex-syntax-keyword: #ff7b72;
-    --latex-syntax-function: #d2a8ff;
-    --latex-syntax-string: #a5d6ff;
-    --latex-syntax-number: #79c0ff;
-    --latex-syntax-comment: #8b949e;
+  --latex-primary: var(--text-normal);
+  --latex-secondary: var(--text-muted);
+  --latex-accent: var(--interactive-accent);
+  --latex-accent-hover: var(--interactive-accent-hover);
+  --latex-success: var(--text-success);
+  --latex-error: var(--text-error);
+  --latex-warning: var(--text-warning);
+  --latex-background: var(--background-primary);
+  --latex-background-secondary: var(--background-secondary);
+  --latex-border: var(--background-modifier-border);
+  --latex-shadow: rgba(0, 0, 0, 0.2);
+
+  /* Custom Dark Theme Colors */
+  --latex-error-light: rgba(255, 76, 76, 0.15);
+  --latex-warning-light: rgba(255, 190, 76, 0.15);
+  --latex-success-light: rgba(76, 255, 128, 0.15);
+  --latex-info-light: rgba(76, 166, 255, 0.15);
+
+  /* Syntax Highlighting - Dark */
+  --latex-syntax-keyword: #ff7b72;
+  --latex-syntax-function: #d2a8ff;
+  --latex-syntax-string: #a5d6ff;
+  --latex-syntax-number: #79c0ff;
+  --latex-syntax-comment: #8b949e;
 }
 
 /* Animation Keyframes */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-    from { transform: translateY(-10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Common Animations */
 .latex-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .latex-slide-in {
-    animation: slideIn 0.3s ease-in-out;
+  animation: slideIn 0.3s ease-in-out;
 }
 
 .latex-pulse {
-    animation: pulse 0.3s ease-in-out;
+  animation: pulse 0.3s ease-in-out;
 }
 
 /* Common UI Elements */
 .latex-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--latex-background-secondary);
-    color: var(--latex-primary);
-    border: 1px solid var(--latex-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--latex-background-secondary);
+  color: var(--latex-primary);
+  border: 1px solid var(--latex-border);
 }
 
 .latex-button:hover {
-    background-color: var(--latex-accent);
-    color: var(--text-on-accent);
+  background-color: var(--latex-accent);
+  color: var(--text-on-accent);
 }
 
 .latex-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .latex-button-primary {
-    background-color: var(--latex-accent);
-    color: var(--text-on-accent);
+  background-color: var(--latex-accent);
+  color: var(--text-on-accent);
 }
 
 .latex-button-primary:hover {
-    background-color: var(--latex-accent-hover);
+  background-color: var(--latex-accent-hover);
 }
 
 /* Input Elements */
 .latex-input {
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--latex-border);
-    background-color: var(--latex-background);
-    color: var(--latex-primary);
-    font-size: 14px;
-    transition: border-color 0.2s ease;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--latex-border);
+  background-color: var(--latex-background);
+  color: var(--latex-primary);
+  font-size: 14px;
+  transition: border-color 0.2s ease;
 }
 
 .latex-input:focus {
-    border-color: var(--latex-accent);
-    outline: none;
+  border-color: var(--latex-accent);
+  outline: none;
 }
 
 .latex-input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Select Elements */
 .latex-select {
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--latex-border);
-    background-color: var(--latex-background);
-    color: var(--latex-primary);
-    font-size: 14px;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--latex-border);
+  background-color: var(--latex-background);
+  color: var(--latex-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
 .latex-select:focus {
-    border-color: var(--latex-accent);
-    outline: none;
+  border-color: var(--latex-accent);
+  outline: none;
 }
 
 /* Checkbox Elements */
 .latex-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
-.latex-checkbox input[type="checkbox"] {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border: 1px solid var(--latex-border);
-    border-radius: 3px;
-    background-color: var(--latex-background);
-    cursor: pointer;
-    transition: all 0.2s ease;
+.latex-checkbox input[type='checkbox'] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--latex-border);
+  border-radius: 3px;
+  background-color: var(--latex-background);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.latex-checkbox input[type="checkbox"]:checked {
-    background-color: var(--latex-accent);
-    border-color: var(--latex-accent);
+.latex-checkbox input[type='checkbox']:checked {
+  background-color: var(--latex-accent);
+  border-color: var(--latex-accent);
 }
 
-.latex-checkbox input[type="checkbox"]:checked::after {
-    content: '✓';
-    display: block;
-    color: var(--text-on-accent);
-    text-align: center;
-    line-height: 14px;
-    font-size: 12px;
+.latex-checkbox input[type='checkbox']:checked::after {
+  content: '✓';
+  display: block;
+  color: var(--text-on-accent);
+  text-align: center;
+  line-height: 14px;
+  font-size: 12px;
 }
 
 /* Status Indicators */
 .latex-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .latex-status-error {
-    background-color: var(--latex-error-light);
-    color: var(--latex-error);
+  background-color: var(--latex-error-light);
+  color: var(--latex-error);
 }
 
 .latex-status-warning {
-    background-color: var(--latex-warning-light);
-    color: var(--latex-warning);
+  background-color: var(--latex-warning-light);
+  color: var(--latex-warning);
 }
 
 .latex-status-success {
-    background-color: var(--latex-success-light);
-    color: var(--latex-success);
+  background-color: var(--latex-success-light);
+  color: var(--latex-success);
 }
 
 .latex-status-info {
-    background-color: var(--latex-info-light);
-    color: var(--latex-accent);
+  background-color: var(--latex-info-light);
+  color: var(--latex-accent);
 }
 
 /* Cards and Containers */
 .latex-card {
-    background-color: var(--latex-background);
-    border: 1px solid var(--latex-border);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 4px var(--latex-shadow);
+  background-color: var(--latex-background);
+  border: 1px solid var(--latex-border);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px var(--latex-shadow);
 }
 
 .latex-card-header {
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--latex-border);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--latex-border);
 }
 
 .latex-card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--latex-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--latex-primary);
 }
 
 /* Typography */
 .latex-text-primary {
-    color: var(--latex-primary);
+  color: var(--latex-primary);
 }
 
 .latex-text-secondary {
-    color: var(--latex-secondary);
+  color: var(--latex-secondary);
 }
 
 .latex-text-accent {
-    color: var(--latex-accent);
+  color: var(--latex-accent);
 }
 
 .latex-text-error {
-    color: var(--latex-error);
+  color: var(--latex-error);
 }
 
 .latex-text-warning {
-    color: var(--latex-warning);
+  color: var(--latex-warning);
 }
 
 .latex-text-success {
-    color: var(--latex-success);
+  color: var(--latex-success);
 }
