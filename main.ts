@@ -187,7 +187,7 @@ const isObject = (item: any): item is Record<string, any> =>
     item && typeof item === 'object' && !Array.isArray(item);
 
 export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlugin {
-    private translator: LatexTranslator;
+    private translator!: LatexTranslator;
     private commandHistory: CommandHistory;
     private errorHandler!: ErrorHandler;
     public parser: LatexParser;
@@ -205,8 +205,9 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
     /**
      * Activate or reveal a view of the specified type
      * @param viewType The type of view to activate
+     * @param createIfNotExists Whether to create the view if it doesn't exist (default: true)
      */
-    async activateView(viewType: string = LATEX_VIEW_TYPE): Promise<void> {
+    async activateView(viewType: string = LATEX_VIEW_TYPE, createIfNotExists: boolean = true): Promise<void> {
         const leaves = this.app.workspace.getLeavesOfType(viewType);
         
         if (leaves.length > 0) {
