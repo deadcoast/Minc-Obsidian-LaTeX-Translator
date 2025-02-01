@@ -36,11 +36,13 @@ export class BatchOperationsModal extends Modal {
     private root: any;
     private settings: LatexTranslatorSettings;
     private translator: LatexTranslator;
+    private plugin: MincLatexTranslatorPlugin;
 
-    constructor(app: App, settings: LatexTranslatorSettings, translator: LatexTranslator) {
+    constructor(app: App, settings: LatexTranslatorSettings, translator: LatexTranslator, plugin: MincLatexTranslatorPlugin) {
         super(app);
         this.settings = settings;
         this.translator = translator;
+        this.plugin = plugin;
     }
 
     onOpen() {
@@ -52,6 +54,7 @@ export class BatchOperationsModal extends Modal {
                 app={this.app}
                 settings={this.settings}
                 translator={this.translator}
+                plugin={this.plugin}
                 onClose={() => this.close()}
             />
         );
@@ -68,6 +71,7 @@ const BatchOperationsComponent: React.FC<BatchOperationsModalProps> = ({
     app,
     settings,
     translator,
+    plugin,
     onClose
 }) => {
     const [state, setState] = React.useState<BatchOperationsState>({

@@ -50,6 +50,7 @@ export interface LatexTranslatorSettings {
   useCallouts: boolean;
   renderImmediately: boolean;
   autoNumberEquations: boolean;
+  maxHistoryEntries: number; // Maximum number of command history entries to retain
 
   // UI Settings
   ui: UISettings;
@@ -337,12 +338,7 @@ export interface LatexTranslatorSettings {
   batchOperations: BatchOperationSettings;
 }
 
-export interface UISettings {
-  errorGrouping: string;
-  errorNotificationDuration: number;
-  previewDelay: number;
-  theme: 'light' | 'dark' | 'system';
-}
+import { UISettings, DEFAULT_UI_SETTINGS } from '../ui/ui_settings/UISettings';
 
 export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   direction: 'latex-to-obsidian',
@@ -357,9 +353,10 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
   useCallouts: true,
   renderImmediately: true,
   autoNumberEquations: true,
+  maxHistoryEntries: 100, // Maximum number of command history entries to retain
+
   ui: {
-    theme: 'default',
-    customStyles: {}
+    ...DEFAULT_UI_SETTINGS
   },
 
   bracketReplacement: {
@@ -766,6 +763,21 @@ export class LatexTranslatorSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
               this.plugin.getSettings().autoNumberEquations = value;
               await this.plugin.saveSettings();
+          }));
+
+    // Max History Entries
+    new Setting(containerEl)
+      .setName('Max History Entries')
+      .setDesc('Maximum number of command history entries to retain')
+      .addText(text => text
+          .setPlaceholder('100')
+          .setValue(String(this.plugin.getSettings().maxHistoryEntries))
+          .onChange(async (value) => {
+              const num = parseInt(value);
+              if (!isNaN(num)) {
+                  this.plugin.getSettings().maxHistoryEntries = num;
+                  await this.plugin.saveSettings();
+              }
           }));
   }
 

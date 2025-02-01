@@ -7,7 +7,7 @@ import { AppProvider } from '../components/AppContext';
 import { TransformationControls } from '../components/TransformationControls';
 import { ParserOptions } from '../../core/parser';
 import { LATEX_VIEW_TYPE } from './LatexView';
-import type MincLatexTranslatorPlugin from '../../main';
+import type MincLatexTranslatorPlugin from '../../../main';
 
 const ViewContainer = styled.div`
   height: 100%;

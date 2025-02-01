@@ -6,7 +6,7 @@ import { defaultKeymap } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { markdown } from '@codemirror/lang-markdown';
 import { Notice } from 'obsidian';
-import { parseLatexToObsidian } from '@core/parser';
+import LatexParser from '@core/parser/latexParser';
 
 interface PreviewPanelProps {
   initialContent?: string;
@@ -75,8 +75,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   const outputEditorDomRef = useRef<HTMLDivElement>(null);
   
   // Refs for the EditorView instances
-  const sourceEditorRef = useRef<EditorView>();
-  const outputEditorRef = useRef<EditorView>();
+  const sourceEditorRef = useRef<EditorView | null>(null);
+  const outputEditorRef = useRef<EditorView | null>(null);
+  
+  const latexParser = useRef<LatexParser>(new LatexParser());
   
   useEffect(() => {
     // Source editor setup
@@ -90,7 +92,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
           if (update.docChanged) {
             const content = update.state.doc.toString();
             try {
-              const latex = parseLatexToObsidian(content);
+              const latex = latexParser.current.parseLatexToObsidian(content);
               setLatexOutput(latex);
               onContentChange?.(content);
               
@@ -148,7 +150,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
         <Button onClick={() => {
           try {
             const content = sourceEditorRef.current?.state.doc.toString() || '';
-            const latex = parseLatexToObsidian(content);
+            const latex = latexParser.current.parseLatexToObsidian(content);
             setLatexOutput(latex);
             new Notice('LaTeX converted successfully!');
           } catch (error) {

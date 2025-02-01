@@ -1,6 +1,8 @@
+import { App } from 'obsidian';
 import { ParserOptions } from '../parser/latexParser';
-import { LatexTranslatorSettings } from '../settings/LatexTranslatorSettings';
-import { App } from '../app/App';
+import { LatexTranslatorSettings } from '../../settings/settings';
+import { TFile } from 'obsidian';
+import { settingsToParserOptions } from '../../settings/settings';
 
 export interface CommandHistoryEntry {
     timestamp: number;
@@ -11,6 +13,14 @@ export interface CommandHistoryEntry {
     options: ParserOptions;
     duration?: number;
     errorMessage?: string;
+    filePath?: string;
+    oldContent?: string;
+    newContent?: string;
+    fileMetadata?: {
+        path: string;
+        size: number;
+        lastModified: number;
+    };
     conversionStats?: {
         mathCount: number;
         citationCount: number;
@@ -48,10 +58,28 @@ export interface CommandStatistics {
 
 export class CommandHistory {
     constructor(
-        private settings: LatexTranslatorSettings,
-        private app: App
+        private app: App,
+        private settings: LatexTranslatorSettings
     ) {
-        // Initialize history tracking
+        // Initialize history tracking and ensure vault is ready
+        this.app.workspace.onLayoutReady(() => {
+            this.initializeVaultTracking();
+        });
+    }
+
+    private initializeVaultTracking(): void {
+        // Track file modifications to enrich history entries
+        this.app.vault.on('modify', (file) => {
+            const lastEntry = this.getLastEntry();
+            if (lastEntry && lastEntry.filePath === file.path && file instanceof TFile) {
+                // Update entry with latest file metadata
+                lastEntry.fileMetadata = {
+                    path: file.path,
+                    size: file.stat.size,
+                    lastModified: file.stat.mtime
+                };
+            }
+        });
     }
 
     private static readonly MAX_HISTORY = 50;
@@ -59,8 +87,28 @@ export class CommandHistory {
     private startTime: number = Date.now();
 
     addEntry(entry: CommandHistoryEntry): void {
+        // Apply settings-based enrichment
+        entry.options = {
+            ...entry.options,
+            ...settingsToParserOptions(this.settings)
+        };
+
+        // Enrich entry with file metadata if available
+        if (entry.filePath) {
+            const file = this.app.vault.getAbstractFileByPath(entry.filePath);
+            if (file && file instanceof TFile) {
+                entry.fileMetadata = {
+                    path: file.path,
+                    size: file.stat.size,
+                    lastModified: file.stat.mtime
+                };
+            }
+        }
+
+        // Apply history retention based on settings
         this.history.unshift(entry);
-        if (this.history.length > CommandHistory.MAX_HISTORY) {
+        const maxHistory = this.settings.maxHistoryEntries || CommandHistory.MAX_HISTORY;
+        if (this.history.length > maxHistory) {
             this.history.pop();
         }
     }

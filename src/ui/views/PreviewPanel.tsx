@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, MarkdownRenderer, debounce } from 'obsidian';
 import { createRoot, Root } from 'react-dom/client';
 import * as React from 'react';
-import { parseLatexToObsidian } from '../../core/parser/latexParser';
+import LatexParser from '../../core/parser/latexParser';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { logger } from '@utils/logger';
 
@@ -12,10 +12,12 @@ export class PreviewPanel extends ItemView {
     private settings: LatexTranslatorSettings;
     private content: string = '';
     private updateDebounced: () => void;
+    private latexParser: LatexParser;
 
     constructor(leaf: WorkspaceLeaf, settings: LatexTranslatorSettings) {
         super(leaf);
         this.settings = settings;
+        this.latexParser = new LatexParser();
         this.updateDebounced = debounce(
             () => this.renderPreview(),
             this.settings.uiSettings.previewDelay
@@ -50,7 +52,9 @@ export class PreviewPanel extends ItemView {
     }
 
     private renderView(): void {
-        if (!this.root) return;
+        if (!this.root) {
+          return;
+        }
         this.root.render(
             <PreviewView
                 content={this.content}
@@ -62,7 +66,7 @@ export class PreviewPanel extends ItemView {
 
     private async renderPreview(): Promise<void> {
         try {
-            const converted = await parseLatexToObsidian(this.content, this.settings);
+            const converted = await this.latexParser.parseLatexToObsidian(this.content, { direction: 'latex-to-obsidian' });
             this.renderView();
         } catch (error) {
             logger.error('Preview rendering error:', error);

@@ -1,9 +1,9 @@
-import { TFile, TFolder, Vault, Notice } from 'obsidian';
-import type MincLatexTranslatorPlugin from '../../../main';
+import { TFile, TFolder, Vault, Notice, MarkdownView } from 'obsidian';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { BatchErrorReport } from '../error/ErrorReport';
 import { LatexTranslator } from '../translator/LatexTranslator';
 import { isTFolder } from '../../utils/file-utils';
+import { CommandHistory } from '../../core/history/commandHistory';
 
 interface BatchProgress {
     totalFiles: number;
@@ -26,14 +26,28 @@ export class BatchProcessor {
     private settings: LatexTranslatorSettings;
     private translator: LatexTranslator;
     private progress: BatchProgress;
-    private plugin: MincLatexTranslatorPlugin;
+    private plugin: { 
+        history(): CommandHistory;
+        getErrorHandler(): {
+            handleError: (message: string, context?: { content?: string }) => void;
+        };
+        activeView: MarkdownView | null;
+        refreshPreview: () => void;
+    };
     private onProgressUpdate: (progress: BatchProgress) => void;
 
     constructor(
         vault: Vault,
         settings: LatexTranslatorSettings,
         translator: LatexTranslator,
-        plugin: MincLatexTranslatorPlugin,
+        plugin: { 
+            history(): CommandHistory;
+            getErrorHandler(): {
+                handleError: (message: string, context?: { content?: string }) => void;
+            };
+            activeView: MarkdownView | null;
+            refreshPreview: () => void;
+        },
         onProgressUpdate?: (progress: BatchProgress) => void
     ) {
         this.vault = vault;
@@ -61,13 +75,19 @@ export class BatchProcessor {
             // Apply settings-specific processing
             let { translatedContent, error } = await this.translator.translateContent(content);
             
-            // If there was an error, add it to the progress
+            // If there was an error, add it to the progress and notify through plugin's error handler
             if (error) {
                 this.progress.errors.push({
                     file: file.path,
                     message: error.lastError?.message || 'Unknown error occurred',
                     details: error.lastError?.stackTrace,
-                    timestamp: new Date().toISOString()
+                    timestamp: Date.now().toString()
+                });
+                
+                // Convert ErrorReport to a format handleError can accept
+                const errorMessage = error.lastError?.message || 'Unknown error occurred';
+                this.plugin.getErrorHandler().handleError(errorMessage, {
+                    content: `Processing file: ${file.path}`
                 });
             }
             
@@ -81,8 +101,27 @@ export class BatchProcessor {
                 translatedContent = this.applyAutoNumbering(translatedContent);
             }
 
+            // Add to command history for undo/redo support
+            this.plugin.history().addEntry({
+                commandName: 'batchTranslate',
+                commandId: `batch_${Date.now()}`,
+                timestamp: Date.now(),
+                success: true,
+                selectionLength: content.length,
+                options: this.settings,
+                filePath: file.path,
+                oldContent: content,
+                newContent: translatedContent
+            });
+
             await this.vault.modify(file, translatedContent);
             this.progress.successfulFiles++;
+
+            // Refresh preview if the file is currently being viewed
+            const {activeView} = this.plugin;
+            if (activeView && activeView instanceof MarkdownView && activeView.file === file) {
+                this.plugin.refreshPreview();
+            }
         } catch (error) {
             this.progress.failedFiles++;
             // Type guard for custom error type
@@ -106,7 +145,7 @@ export class BatchProcessor {
                 file: file.path,
                 message: errorMessage,
                 details: errorDetails,
-                timestamp: new Date().toISOString()
+                timestamp: Date.now().toString()
             });
         } finally {
             this.progress.processedFiles++;
@@ -183,7 +222,7 @@ export class BatchProcessor {
                         throw new Error(`Error threshold exceeded: ${(errorRate * 100).toFixed(2)}%`);
                     }
                 }
-            } else if (isTFolder(item) && options.recursive) {
+            } else if (item instanceof TFolder && options.recursive) {
                 await this.processFolder(item, options);
             }
         }
@@ -220,7 +259,7 @@ export class BatchProcessor {
         for (const item of folder.children) {
             if (item instanceof TFile && this.shouldProcessFile(item, options)) {
                 this.progress.totalFiles++;
-            } else if (this.plugin.isTFolder(item) && options.recursive) {
+            } else if (item instanceof TFolder && options.recursive) {
                 this.countMarkdownFiles(item, options);
             }
         }

@@ -113,7 +113,7 @@ const ReactView = ({ app, plugin }: ReactViewProps) => {
         await useApp().vault.modify(file, converted);
         
         // Add to command history
-        plugin.history.addEntry({
+        plugin.history().addEntry({
           timestamp: Date.now(),
           commandId: `file_conversion_${Date.now()}`,
           commandName: 'convertFile',
