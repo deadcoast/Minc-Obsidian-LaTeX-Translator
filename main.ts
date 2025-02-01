@@ -24,6 +24,7 @@ import { LatexTranslator } from './src/core/translator/LatexTranslator';
 import { CommandHistory } from '@core/history/commandHistory';
 import { ErrorHandler } from '@core/error/ErrorHandler';
 import { BatchOperationSettings } from './src/types/BatchOperationSettings'; // Import the BatchOperationSettings interface
+import { BatchOperationsModal } from './src/ui/components/BatchOperationsModal';
 
 // Default Settings
 const DEFAULT_SETTINGS: LatexTranslatorSettings = {
@@ -98,7 +99,36 @@ const DEFAULT_SETTINGS: LatexTranslatorSettings = {
         lineHeight: 1.5,
         editorWidth: 'medium',
         sidebarLocation: 'right',
-        customCSS: '',
+        customStyles: {
+            enabled: true,
+            css: `
+                .latex-translator-view {
+                    padding: 1rem;
+                    gap: 1rem;
+                }
+                .theme-light {
+                    --latex-error-light: rgba(255, 76, 76, 0.1);
+                    --latex-warning-light: rgba(255, 190, 76, 0.1);
+                    --latex-success-light: rgba(76, 255, 128, 0.1);
+                    --latex-info-light: rgba(76, 166, 255, 0.1);
+                    --latex-syntax-keyword: #d73a49;
+                    --latex-syntax-function: #6f42c1;
+                    --latex-syntax-string: #032f62;
+                    --latex-syntax-number: #005cc5;
+                    --latex-syntax-comment: #6a737d;
+                }
+                .latex-highlight {
+                    position: relative;
+                    border-radius: 2px;
+                    padding: 2px 4px;
+                    margin: 0 -4px;
+                }
+                .latex-highlight-error {
+                    background-color: var(--latex-error-light);
+                    border-bottom: 2px dotted var(--latex-error);
+                }
+            `
+        },
         enablePreviewPanel: true,
         previewPanelPosition: 'right',
         autoUpdatePreview: true,
@@ -183,20 +213,22 @@ const isObject = (item: any): item is Record<string, any> =>
 export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlugin {
     private translator!: LatexTranslator;
     private commandHistory: CommandHistory;
-    public get history(): CommandHistory {
+    public history = () => {
         return this.commandHistory;
     }
     private errorHandler!: ErrorHandler;
+    public getErrorHandler(): ErrorHandler {
+        return this.errorHandler;
+    }
     public parser: LatexParser;
     public settings: LatexTranslatorSettings;
-    public activeView: View | null = null;
+    public activeView: MarkdownView | null = null;
     public isProcessing = false;
 
     constructor(app: App, manifest: PluginManifest) { 
         super(app, manifest); this.settings = { ...DEFAULT_SETTINGS }; 
         this.parser = new LatexParser(); 
-        this.commandHistory = new CommandHistory(this.settings,
-        this.app); 
+        this.commandHistory = new CommandHistory(this.app, this.settings); 
         this.errorHandler = ErrorHandler.getInstance(this.app); 
         this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
 
@@ -246,7 +278,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         
         // Initialize core components
         this.parser = new LatexParser();
-        this.commandHistory = new CommandHistory(this.settings, this.app);
+        this.commandHistory = new CommandHistory(this.app, this.settings);
         this.errorHandler = ErrorHandler.getInstance(this.app);
         this.translator = new LatexTranslator(this.settings, this.commandHistory, this.errorHandler);
         
@@ -441,6 +473,26 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
             }
         });
 
+        // Add command for batch operations
+        this.addCommand({
+            id: 'open-batch-operations',
+            name: 'Open Batch Operations',
+            callback: () => {
+                new BatchOperationsModal(
+                    this.app,
+                    this.settings,
+                    this.translator,
+                    this
+                ).open();
+            },
+            hotkeys: [
+                {
+                    modifiers: ['Mod', 'Shift'],
+                    key: 'B'
+                }
+            ]
+        });
+
         // Register event handlers
         this.registerEvent(
             this.app.workspace.on('editor-change', (ev: Editor) => {
@@ -460,7 +512,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         this.addCommand({
             id: 'convert-latex-to-obsidian',
             name: 'Convert LaTeX to Obsidian',
-            editorCallback: (editor, view) => {
+            editorCallback: (editor) => {
                 this.handleLatexToObsidian(editor);
             }
         });
@@ -468,7 +520,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         this.addCommand({
             id: 'convert-obsidian-to-latex',
             name: 'Convert Obsidian to LaTeX',
-            editorCallback: (editor, view) => {
+            editorCallback: (editor) => {
                 this.handleObsidianToLatex(editor);
             }
         });
@@ -518,7 +570,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
     /**
      * Refresh the preview pane
      */
-    private async refreshPreview() {
+    public async refreshPreview() {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (view?.previewMode) {
             await view.previewMode.rerender(true);
@@ -563,24 +615,28 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
      */
     private async handleActiveLeafChange(leaf: WorkspaceLeaf | null) {
         if (!leaf) {
+            this.activeView = null;
             return;
         }
 
         const {view} = leaf;
-        if (view instanceof MarkdownView && this.settings.renderImmediately) {
-            const content = view.editor.getValue();
-            const mathContent = this.parser.parse(content, {
-                direction: 'latex-to-obsidian',
-                preserveLabels: !this.settings.labelAndReference.removeLabels,
-                numberEquations: this.settings.autoNumberEquations
-            });
-            
-            view.editor.setValue(mathContent);
-            await this.refreshPreview();
+        if (view instanceof MarkdownView) {
+            this.activeView = view;
+            if (this.settings.renderImmediately) {
+                const content = view.editor.getValue();
+                const mathContent = this.parser.parse(content, {
+                    direction: 'latex-to-obsidian',
+                    preserveLabels: !this.settings.labelAndReference.removeLabels,
+                    numberEquations: this.settings.autoNumberEquations
+                });
+                
+                view.editor.setValue(mathContent);
+                await this.refreshPreview();
+            }
+        } else {
+            this.activeView = null;
         }
     }
-
-
 
     /**
      * Check if a file is a folder
@@ -596,20 +652,48 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
 
         this.isProcessing = true;
         try {
+            const operation = async (text: string) => {
+                const { translatedContent, error } = await this.translator.translateContent(
+                    text,
+                    undefined,
+                    {
+                        preserveLabels: !this.settings.labelAndReference.removeLabels,
+                        numberEquations: this.settings.autoNumberEquations
+                    }
+                );
+
+                if (error) {
+                    logger.error('Translation error:', error);
+                    if (this.settings.showNotifications) {
+                        new Notice('Error converting LaTeX: ' + error.lastError?.message);
+                    }
+                    return; // <--- Added a comma after the return statement
+                }
+
+                if (editor.getSelection()) {
+                    editor.replaceSelection(translatedContent);
+                } else {
+                    editor.setValue(translatedContent);
+                }
+
+                if (this.settings.showNotifications) {
+                    new Notice('LaTeX converted successfully!');
+                }
+
+            };
+
             const text = editor.getSelection() || editor.getValue();
             const { translatedContent, error } = await this.translator.translateContent(
                 text,
                 undefined,
-                {
-                    preserveLabels: !this.settings.labelAndReference.removeLabels,
-                    numberEquations: this.settings.autoNumberEquations
+                { 
                 }
             );
 
             if (error) {
                 logger.error('Translation error:', error);
                 if (this.settings.showNotifications) {
-                    new Notice('Error converting LaTeX: ' + error.lastError?.message);
+                    new Notice('Error converting to LaTeX: ' + error.lastError?.message);
                 }
                 return;
             }
@@ -621,7 +705,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
             }
 
             if (this.settings.showNotifications) {
-                new Notice('LaTeX converted successfully!');
+                new Notice('Converted to LaTeX successfully!');
             }
         } catch (error) {
             logger.error('Error converting LaTeX:', error);
@@ -679,7 +763,7 @@ export class LatexTranslatorPlugin extends Plugin implements ILatexTranslatorPlu
         }
     }
 
-    private isTFolder(file: TAbstractFile | null): file is TFolder {
+    public isTFolder(file: TAbstractFile | null): file is TFolder {
         return file instanceof TFolder;
     }
 
