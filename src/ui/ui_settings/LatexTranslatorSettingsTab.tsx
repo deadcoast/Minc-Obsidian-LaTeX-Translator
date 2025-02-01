@@ -1,15 +1,15 @@
 import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { LatexTranslatorSettings, DEFAULT_SETTINGS } from '../../settings/settings';
-import LatexTranslatorPlugin from '../../main';
+import { ILatexTranslatorPlugin } from '../../types';
 import { logger } from '@utils/logger';
 import { validateSettings, validateAndSanitizeFormat, exportSettings, importSettings } from '../../settings/settingsValidation';
 
 export class LatexTranslatorSettingsTab extends PluginSettingTab {
-    plugin: LatexTranslatorPlugin;
+    plugin: ILatexTranslatorPlugin;
     settings: LatexTranslatorSettings;
     private availableSettings: LatexTranslatorSettings & Required<Pick<LatexTranslatorSettings, 'uiSettings'>>;
     
-    constructor(app: App, plugin: LatexTranslatorPlugin) {
+    constructor(app: App, plugin: ILatexTranslatorPlugin) {
         super(app, plugin);
         this.plugin = plugin;
         // First load default settings, then override with any existing user settings

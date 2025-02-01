@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import { default as LatexTranslatorPlugin } from '../../main';
 import { ParserOptions } from '../core/parser/latexParser';
+import { UISettings } from '../types/UISettings';
 
 // LatexTranslatorSettings.ts
 
@@ -50,6 +51,9 @@ export interface LatexTranslatorSettings {
   useCallouts: boolean;
   renderImmediately: boolean;
   autoNumberEquations: boolean;
+
+  // UI Settings
+  ui: UISettings;
 
   bracketReplacement: {
     convertDisplayMath: boolean;
@@ -321,6 +325,14 @@ export interface LatexTranslatorSettings {
       compressionEnabled: boolean;
       backupEnabled: boolean;
     };
+  };
+
+  batch: {
+    recursive: boolean;
+    skipExisting: boolean;
+    createBackups: boolean;
+    notifyOnCompletion: boolean;
+    errorThreshold: number;
   };
 
   batchOperations: BatchOperationSettings;
@@ -612,6 +624,14 @@ export const DEFAULT_SETTINGS: LatexTranslatorSettings = {
       compressionEnabled: true,
       backupEnabled: true
     }
+  },
+
+  batch: {
+    recursive: false,
+    skipExisting: true,
+    createBackups: true,
+    notifyOnCompletion: true,
+    errorThreshold: 10,
   },
 
   batchOperations: {

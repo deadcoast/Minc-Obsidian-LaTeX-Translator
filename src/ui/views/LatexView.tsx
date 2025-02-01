@@ -3,16 +3,19 @@ import { Root, createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import { ReactView } from '@views/index';
 import { AppContext } from '@core/context';
+import { default as LatexTranslatorPlugin } from '../../../main';
 
 export const LATEX_VIEW_TYPE = 'latex-translator-view';
 
 export class LatexView extends ItemView {
   root: Root | null = null;
   app: App;
+  plugin: LatexTranslatorPlugin;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, plugin: LatexTranslatorPlugin) {
     super(leaf);
     this.app = (this.leaf as any).app;
+    this.plugin = plugin;
   }
 
   getViewType(): string {
@@ -28,7 +31,7 @@ export class LatexView extends ItemView {
     this.root.render(
       <StrictMode>
         <AppContext.Provider value={this.app}>
-          <ReactView app={this.app} />
+          <ReactView app={this.app} plugin={this.plugin} />
         </AppContext.Provider>
       </StrictMode>
     );

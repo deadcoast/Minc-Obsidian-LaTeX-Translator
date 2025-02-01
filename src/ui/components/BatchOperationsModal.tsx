@@ -1,4 +1,5 @@
 import { App, Modal, Notice, TFolder } from 'obsidian';
+import type MincLatexTranslatorPlugin from '../../../main';
 import { BatchProcessor } from '../../core/batch/BatchProcessor';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { LatexTranslator } from '../../core/translator/LatexTranslator';
@@ -9,6 +10,7 @@ interface BatchOperationsModalProps {
     app: App;
     settings: LatexTranslatorSettings;
     translator: LatexTranslator;
+    plugin: MincLatexTranslatorPlugin;
     onClose: () => void;
 }
 
@@ -91,9 +93,10 @@ const BatchOperationsComponent: React.FC<BatchOperationsModalProps> = ({
             app.vault,
             settings,
             translator,
+            plugin,
             (progress) => setState(prev => ({ ...prev, progress }))
         ),
-        [app.vault, settings, translator]
+        [app.vault, settings, translator, plugin]
     );
 
     const handleStartProcessing = async () => {

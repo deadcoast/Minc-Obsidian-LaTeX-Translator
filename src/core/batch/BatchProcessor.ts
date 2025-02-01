@@ -1,7 +1,9 @@
 import { TFile, TFolder, Vault, Notice } from 'obsidian';
+import type MincLatexTranslatorPlugin from '../../../main';
 import { LatexTranslatorSettings } from '../../settings/settings';
 import { BatchErrorReport } from '../error/ErrorReport';
 import { LatexTranslator } from '../translator/LatexTranslator';
+import { isTFolder } from '../../utils/file-utils';
 
 interface BatchProgress {
     totalFiles: number;
@@ -24,17 +26,20 @@ export class BatchProcessor {
     private settings: LatexTranslatorSettings;
     private translator: LatexTranslator;
     private progress: BatchProgress;
+    private plugin: MincLatexTranslatorPlugin;
     private onProgressUpdate: (progress: BatchProgress) => void;
 
     constructor(
         vault: Vault,
         settings: LatexTranslatorSettings,
         translator: LatexTranslator,
+        plugin: MincLatexTranslatorPlugin,
         onProgressUpdate?: (progress: BatchProgress) => void
     ) {
         this.vault = vault;
         this.settings = settings;
         this.translator = translator;
+        this.plugin = plugin;
         this.onProgressUpdate = onProgressUpdate || (() => {});
         this.progress = this.initializeProgress();
     }
@@ -178,7 +183,7 @@ export class BatchProcessor {
                         throw new Error(`Error threshold exceeded: ${(errorRate * 100).toFixed(2)}%`);
                     }
                 }
-            } else if (item instanceof TFolder && options.recursive) {
+            } else if (isTFolder(item) && options.recursive) {
                 await this.processFolder(item, options);
             }
         }
@@ -215,7 +220,7 @@ export class BatchProcessor {
         for (const item of folder.children) {
             if (item instanceof TFile && this.shouldProcessFile(item, options)) {
                 this.progress.totalFiles++;
-            } else if (item instanceof TFolder && options.recursive) {
+            } else if (this.plugin.isTFolder(item) && options.recursive) {
                 this.countMarkdownFiles(item, options);
             }
         }
@@ -226,7 +231,7 @@ export class BatchProcessor {
         options: BatchOptions
     ): Promise<BatchProgress> {
         const folder = this.vault.getAbstractFileByPath(folderPath);
-        if (!(folder instanceof TFolder)) {
+        if (!isTFolder(folder)) {
             throw new Error(`Invalid folder path: ${folderPath}`);
         }
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import styled from 'styled-components';
@@ -6,8 +6,8 @@ import { PreviewPanel } from './PanelView';
 import { AppProvider } from '../components/AppContext';
 import { TransformationControls } from '../components/TransformationControls';
 import { ParserOptions } from '../../core/parser';
-
-export const LATEX_VIEW_TYPE = 'latex-translator-view';
+import { LATEX_VIEW_TYPE } from './LatexView';
+import type MincLatexTranslatorPlugin from '../../main';
 
 const ViewContainer = styled.div`
   height: 100%;
@@ -17,13 +17,15 @@ const ViewContainer = styled.div`
 `;
 
 interface ViewContentProps {
+  plugin: MincLatexTranslatorPlugin;
 }
 
-const ViewContent: React.FC<ViewContentProps> = () => {
+const ViewContent: React.FC<ViewContentProps> = ({ plugin: _plugin }) => {
   const [parserOptions, setParserOptions] = React.useState<ParserOptions>({
+    direction: 'latex-to-obsidian',
     convertEnvironments: true,
     removeLabels: false,
-    handleRefs: 'ignore',
+    handleRefs: 'placeholder',
     expandMacros: true,
     convertCitations: false,
     removeLeftRight: false,
@@ -41,11 +43,13 @@ const ViewContent: React.FC<ViewContentProps> = () => {
   );
 };
 
-export default class LatexTranslatorView extends ItemView {
-  root: Root | null = null;
+export class LatexTranslatorView extends ItemView {
+  private root: Root | null = null;
+  private plugin: MincLatexTranslatorPlugin;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, plugin: MincLatexTranslatorPlugin) {
     super(leaf);
+    this.plugin = plugin;
   }
 
   getViewType(): string {
@@ -65,7 +69,7 @@ export default class LatexTranslatorView extends ItemView {
     this.root.render(
       <React.StrictMode>
         <AppProvider app={(this.app as any)}>
-          <ViewContent />
+          <ViewContent plugin={this.plugin} />
         </AppProvider>
       </React.StrictMode>
     );
